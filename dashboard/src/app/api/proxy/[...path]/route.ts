@@ -16,9 +16,11 @@ async function forward(request: NextRequest, context: RouteContext) {
     'GET audit',
     'GET alerts/stream',
     'GET ca.crt',
+    'GET second-opinion',
     'POST device/register',
     'POST device/heartbeat',
     'POST manual-decision',
+    'POST second-opinion',
   ]);
   const isAlertDecision = method === 'POST' && /^alerts\/[0-9a-f-]{36}\/decision$/i.test(relativePath);
   if (!allowed.has(`${method} ${relativePath}`) && !isAlertDecision) {
