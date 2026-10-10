@@ -37,8 +37,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${plexSans.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Apply the saved theme before first paint so dark mode does not flash light. */}
-        <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('hfl_theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}" }} />
+        {/* Apply the saved theme (or the system one when none is saved) before first paint so there is no flash. */}
+        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('hfl_theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t)}catch(e){}" }} />
       </head>
       <body className="font-body">
         <I18nProvider>

@@ -12,6 +12,7 @@
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
+  color-scheme: light;
   /* Brand Palette (Sapphire & Royal Azure Scale) */
   --brand-ice:      #E3F2FD;
   --brand-sky:      #90CAF9;
@@ -151,6 +152,7 @@
 
 /* Dark Theme Overrides */
 [data-theme="dark"] {
+  color-scheme: dark;
   --bg-deep:        #0a1626;
   --bg-base:        #0e1b2e;
   --bg-surface:     #111f33;
