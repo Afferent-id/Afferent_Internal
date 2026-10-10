@@ -258,6 +258,7 @@ a.kpi:hover { border-color: var(--border-control); }
 
 /* ── Traffic & policies (SOC) ────────────────────────────────────────── */
 .ops-page { display: grid; gap: 4px; }
+.ops-gateway { display: inline-flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .ops-intro { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .strip-static { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; font-size: var(--text-sm); color: var(--text-secondary); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .strip-static b { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--text-primary); }

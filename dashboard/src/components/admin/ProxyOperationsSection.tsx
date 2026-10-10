@@ -185,6 +185,19 @@ export default function ProxyOperationsSection() {
   }), [alerts, traffic, verdicts]);
   const visibleAlerts = alerts.filter(item => queueFilter === 'all' || (queueFilter === 'history' ? item.status !== 'open' || item.stalePrediction : item.status === 'open' && !item.stalePrediction && (queueFilter === 'unknown' ? item.urgency === 'Unknown' && item.source !== 'employee_report' : item.urgency === 'Critical' || item.source === 'employee_report')));
   const ago = (value: string) => formatAgo(value, lang, now);
+  // Derived from the traffic window already loaded (latest 200 events), so no extra request.
+  const topBlocked = useMemo(() => {
+    const byDomain = new Map<string, { domain: string; count: number; last: string }>();
+    for (const item of traffic) {
+      if (item.action !== 'block') continue;
+      const entry = byDomain.get(item.domain) || { domain: item.domain, count: 0, last: item.occurred_at };
+      entry.count += 1;
+      if (item.occurred_at > entry.last) entry.last = item.occurred_at;
+      byDomain.set(item.domain, entry);
+    }
+    return [...byDomain.values()].sort((a, b) => b.count - a.count || (a.last < b.last ? 1 : -1)).slice(0, 5);
+  }, [traffic]);
+  const lastTraffic = traffic.reduce<string | null>((latest, item) => (!latest || item.occurred_at > latest ? item.occurred_at : latest), null);
   const blocking = review?.action === 'block';
 
   const submitReview = async (event: FormEvent) => {
@@ -203,7 +216,10 @@ export default function ProxyOperationsSection() {
     <section className="proxy-ops ops-page">
       <div className="ops-intro">
         <p className="debt-help">{t('ops.desc')}</p>
-        <StatusChip tone={streamOnline ? 'ok' : 'warn'}>{t(streamOnline ? 'ops.stream.on' : 'ops.stream.off')}</StatusChip>
+        <span className="ops-gateway">
+          <span className="emp-muted">{lastTraffic ? t('ops.gateway.last', { when: ago(lastTraffic) }) : t('ops.gateway.none')}</span>
+          <StatusChip tone={streamOnline ? 'ok' : 'warn'}>{t(streamOnline ? 'ops.stream.on' : 'ops.stream.off')}</StatusChip>
+        </span>
       </div>
       <div className="strip" aria-label={t('ops.desc')}>
         <span className="strip-static"><b>{counts.open}</b>{t('ops.stat.alerts')}</span>
@@ -286,6 +302,19 @@ export default function ProxyOperationsSection() {
             <div className="field" data-invalid={Boolean(policyError)}><label htmlFor="policy-reason">{t('ops.policy.reason')}</label><textarea id="policy-reason" required minLength={5} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t('ops.policy.reason.placeholder')} />{policyError && <small className="field-error" role="alert">{policyError}</small>}</div>
             <button type="submit" className="btn btn-primary" disabled={busy === 'manual'}>{busy === 'manual' ? t('ops.policy.saving') : t('ops.policy.apply')}</button>
           </form>
+
+          <div className="ops-card">
+            <h3>{t('ops.blocked.title')}</h3>
+            {topBlocked.length === 0 && <p className="emp-muted">{t('ops.blocked.empty')}</p>}
+            <ul className="emp-list">
+              {topBlocked.map((item) => (
+                <li key={item.domain}>
+                  <span className="emp-list-main"><span className="mono">{item.domain}</span><small>{t('ops.blocked.last', { when: ago(item.last) })}</small></span>
+                  <StatusChip tone="bad">{t('ops.blocked.count', { n: item.count })}</StatusChip>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           <div className="ops-card">
             <h3>{t('ops.recent.title')}</h3>
