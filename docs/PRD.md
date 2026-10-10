@@ -309,7 +309,7 @@ Baseline lab: 5–8 user, jadi target dibawah adalah **usulan**, bukan hasil ter
 | Respons | Notifikasi pelanggaran data | Readiness UU PDP Pasal 46 | ≤ 72 jam | Ambang 72 jam (statutory) |
 | Proxy | Latensi keputusan domain | `PROXY_DECISION_TIMEOUT_SECONDS` | p95 < 2,5 s (batas timeout) | Timeout 2,5 s; p95 belum diukur |
 | Proxy | Waktu revocation setelah Block | `PROXY_REVOCATION_INTERVAL_SECONDS` | ≤ 1 s + latensi API | Interval 0,5 s |
-| ML | Presisi blok domain; recall keseluruhan | [DOMAIN_ML_EVALUATION.md](DOMAIN_ML_EVALUATION.md) | Naikkan recall | Recall keseluruhan v3 21,18%; OOD judol 0/70 blok (jujur: belum memadai) |
+| ML | Presisi blok domain; recall keseluruhan | [DOMAIN_ML_EVALUATION.md](DOMAIN_ML_EVALUATION.md) | Naikkan recall | Holdout manifest: presisi blok 99,8%, recall blok ±14,1%; catatan tim: recall keseluruhan v3 21,18%, OOD judol 0/70 blok (belum memadai) |
 | Audit | Keputusan SOC yang punya audit lengkap | `proxy_decision_audit` | 100% | Dijamin trigger DB |
 | Adopsi | Perangkat terhubung / employee aktif | `proxy_devices` | ≥ 90% | Belum diukur |
 
