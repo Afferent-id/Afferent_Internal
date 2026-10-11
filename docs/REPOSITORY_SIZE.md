@@ -86,3 +86,36 @@ node scripts/check_submission.cjs --staged
 Restore corpora only for research tasks following [dataset instructions](../dataset/README.md).
 Upload approved, non-secret large artifacts separately with source/license notes
 and checksums. A new release or LFS migration has not yet been published.
+
+## Behavior-preserving code cleanup
+
+The cleanup also removes concrete duplication without changing security policy:
+
+- `backend/ai_cache.py` uses standard-library `contextlib.closing` instead of
+  seven repeated `try/finally` blocks. SQLite transaction commit/rollback and
+  connection closure remain separate and explicit; TTL and error behavior stay unchanged.
+- `backend/ai_anonymizer.py` reuses the same per-user and batch pseudonymization
+  functions for compatibility callers. Restoration iterates only the two
+  supported response fields, retaining its existing in-place semantics.
+- `backend/services/behavior_service.py` separates baseline risk rules,
+  per-employee classification and organization aggregation. Thresholds, output
+  fields, text and division tie-breaking are unchanged.
+- `backend/test_clean_code.py` adds 24 offline characterization checks, first
+  passed against the original code, then against each refactor. They use a new
+  temporary SQLite database, not the owner's application database.
+
+Run the focused checks without a Docker daemon or external API credentials:
+
+```sh
+python -m unittest discover -s backend -p test_clean_code.py
+```
+
+The existing three dashboard regression scripts, eight repository-guard checks,
+two lab-setup checks and Python syntax compilation also passed during this pass.
+The Docker daemon was unavailable on this run, so container integration tests
+and an application rebuild are not represented as new verified results.
+
+This is targeted refactoring, not a wholesale rewrite. The large legacy SQLite
+module and its timestamp compatibility semantics remain deferred; converting
+naive timestamps or restructuring authentication/proxy code requires its own
+migration and integration tests. No dependencies were added to the application.
