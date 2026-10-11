@@ -7,6 +7,7 @@ a claim of production readiness or regulatory certification.
 ## Start here
 
 - [Fresh-clone setup](README_SETUP.md)
+- [Repository size and team migration](docs/REPOSITORY_SIZE.md)
 - [Final submission readiness](docs/FINAL_SUBMISSION.md)
 - [Host + bridged Kali VM demo](docs/DEMO_VM_SOC.md)
 - [Technical debt checklist](docs/TECHNICAL_DEBT_CHECKLIST.md)
@@ -50,11 +51,16 @@ are Future Work, intentionally not implemented.
 | `backend/` | Flask services, durable application data and isolated regression checks |
 | `proxy/`, `gophish/` | Domain-policy enforcement and authorized phishing simulations |
 | `docs/`, `scripts/` | Demo runbooks, measured evidence, bootstrap and submission guard |
-| `dataset/`, `notebooks/`, `ml/` | Training sources, offline experiments and evaluation tools |
+| `dataset/`, `notebooks/`, `ml/` | Dataset metadata, offline training code and evaluation tools; bulk data is restored separately |
 | `archive/` | Historical plans and retired integrations; not part of the active demo |
 
 Training data and experiment results are not automatically trusted or promoted.
 Runtime model manifests identify the active artifact and operating point.
+The small runtime artifacts in `backend/models/` are included; training CSVs,
+downloaded LLM weights and checkpoints are not needed to run the application.
+See [dataset restoration](dataset/README.md) before retraining. Run
+`node scripts/check_submission.cjs --staged` before publishing changes; it
+rejects files over 10 MiB and tracked content over 25 MiB in total.
 
 Copy `.env.example` only for a new setup; preserve existing `.env`,
 `.env.proxy.local`, certificates and Docker volumes. Never run `down -v` on a

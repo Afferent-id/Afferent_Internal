@@ -33,14 +33,10 @@ def anonymize_user_summary_list(users: list[dict]) -> tuple[list[dict], dict[str
     anonymized = []
     mapping = {}
 
-    for u in users:
-        u_copy = copy.deepcopy(u)
-        raw_email = u_copy.get("email", "")
-        pseudo_id = anonymize_email(raw_email)
-
-        u_copy["email"] = pseudo_id
-        mapping[pseudo_id] = raw_email
-        anonymized.append(u_copy)
+    for user in users:
+        anonymous_user, raw_email = anonymize_user_context(user)
+        mapping[anonymous_user["email"]] = raw_email
+        anonymized.append(anonymous_user)
 
     return anonymized, mapping
 
@@ -67,15 +63,9 @@ def anonymize_org_context(org_context: dict) -> tuple[dict, dict[str, str]]:
     mapping = {}
 
     if "chronic_risk_users" in ctx_copy and isinstance(ctx_copy["chronic_risk_users"], list):
-        anonymized_chronic = []
-        for u in ctx_copy["chronic_risk_users"]:
-            u_copy = copy.deepcopy(u)
-            raw_email = u_copy.get("email", "")
-            pseudo_id = anonymize_email(raw_email)
-            u_copy["email"] = pseudo_id
-            mapping[pseudo_id] = raw_email
-            anonymized_chronic.append(u_copy)
-        ctx_copy["chronic_risk_users"] = anonymized_chronic
+        ctx_copy["chronic_risk_users"], mapping = anonymize_user_summary_list(
+            ctx_copy["chronic_risk_users"]
+        )
 
     return ctx_copy, mapping
 
@@ -94,16 +84,10 @@ def deanonymize_response(result: dict, mapping: str | dict[str, str]) -> dict:
 
     # Kasus 2: mapping berupa dict { 'EMP-4E9D2A': 'real_email' }
     if isinstance(mapping, dict):
-        # Restore di list classifications (batch)
-        if "classifications" in result and isinstance(result["classifications"], list):
-            for item in result["classifications"]:
-                pseudo = item.get("email", "")
-                if pseudo in mapping:
-                    item["email"] = mapping[pseudo]
-
-        # Restore di chronic_risk_users (report)
-        if "chronic_risk_users" in result and isinstance(result["chronic_risk_users"], list):
-            for item in result["chronic_risk_users"]:
+        for field in ("classifications", "chronic_risk_users"):
+            if field not in result or not isinstance(result[field], list):
+                continue
+            for item in result[field]:
                 pseudo = item.get("email", "")
                 if pseudo in mapping:
                     item["email"] = mapping[pseudo]
