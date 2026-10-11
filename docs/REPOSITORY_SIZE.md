@@ -7,12 +7,20 @@ in Git. Keep bulk training corpora, downloaded LLM weights and checkpoint/optimi
 outputs outside ordinary Git history. This cleanup does not change proxy policy,
 authentication, SOC decisions or the advisory-only local LLM feature.
 
-On 11 October 2026, local Git packs occupied 288.28 MiB. Current tracked datasets
-occupied about 113.27 MiB before compression. Old MiniLM weights and LLM training
-checkpoints remained reachable from older commits. These measurements are local
-storage sizes, not an exact GitHub network-transfer measurement.
+On 11 October 2026, repository history was slimmed and published with the owner's
+approval. Full-history GitHub clone verification passed without shallow, sparse
+or blob-filter options.
 
-## Completed local preparation
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| Git pack storage in a full GitHub clone/mirror | 287.89 MiB | 10.80 MiB |
+| Current publishable indexed content | about 124 MiB | 10.98 MiB |
+
+Pack storage decreased by approximately 96.2%. These are measured local storage
+sizes, not a network-bandwidth guarantee. Slow or unstable connections can still
+cause Git transport errors.
+
+## Completed optimization
 
 - Preserve bulk data locally while removing it from the Git index.
 - Preserve runtime model files byte-for-byte, including `domain_v3` and Char-BiLSTM.
@@ -21,57 +29,53 @@ storage sizes, not an exact GitHub network-transfer measurement.
 - Extend the existing submission guard: 10 MiB per file, 25 MiB in total.
 - Keep a private recovery ZIP for the working-copy datasets, a ZIP of committed
   datasets and a verified Git bundle at `secrets/repo-optimization-20261011/`.
+- Remove 19 exact bulk-corpus, offline-weight, tokenizer and checkpoint paths
+  across the shared history, not just from the current working tree.
+- Preserve all 124 pre-migration and cleanup commits, their author/committer
+  metadata and messages. Verify every commit tree changes only at those paths.
+- Preserve all five branch names and the `pre-ui-merge` tag. The unaffected
+  `feature/vps-deployment` head remains unchanged; no branch/tag was deleted.
+- Publish the checked refs atomically using explicit old-hash leases. Check the
+  resulting GitHub refs and an ordinary fresh clone with `git fsck` and the guard.
 
 The Git bundle contains historical material, potentially including old exposed
 credentials. It is private recovery data, not a release asset. It does not revoke
 any credential; rotate exposed keys independently.
 
-## Remaining shared-history step
+## Normal clone and team migration
 
-A normal commit deleting a large file does **not** remove its earlier Git objects.
-Local preparation alone therefore does not fix the size of an ordinary fresh clone
-from the existing GitHub history. Do not describe it as completed remote optimization.
-
-History replacement/force-push requires the repository owner's explicit approval
-and coordination with teammates. The remote currently has five branches and the
-`pre-ui-merge` tag. Both `main` and `aria-dev` point to the old `4c58735` history;
-rewriting `main` alone would leave the same large objects reachable through
-`aria-dev`. An ordinary clone fetches other branches too. Approve the exact refs
-to rewrite after checking each branch/tag; do not delete teammates' branches.
-Before publication:
-
-1. Stop team pushes and preserve uncommitted work outside the repository.
-   Anyone with tracked training CSVs should archive them before pulling the cleanup
-   commit: Git removes those tracked copies during an update. Only the owner's
-   current `git rm --cached` operation preserves its existing local copies in place.
-2. Verify backups and remote branch/tag heads; do not discard teammate changes.
-3. Rewrite only approved refs in an isolated copy. Preserve runtime files and keep
-   provenance/commit mapping. Audit any other branches/tags retaining large objects.
-4. Run the submission guard and model-checksum checks. Test an ordinary fresh clone
-   of the candidate and measure its pack size before touching GitHub.
-5. Publish approved refs with explicit expected old hashes (`--force-with-lease`),
-   never blind `--force` or `--mirror`. Do not delete unrelated branches/tags.
-6. Verify an ordinary GitHub clone. Have teammates make a fresh checkout and copy
-   only their own changes; do not merge/push the old history back into cleaned refs.
-
-No remote history replacement or branch/tag deletion has been performed by the
-local preparation. See [GitHub large-file guidance](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github).
-
-## Temporary lightweight clone
-
-Until shared history has been cleaned, this uses only the latest application files.
-Run in a parent directory; choose a new destination name if it already exists.
+Run in a parent directory and choose a new destination name if it already exists:
 
 ```sh
-git -c http.version=HTTP/1.1 clone --depth 1 --single-branch --branch main --no-tags --filter=blob:none --sparse https://github.com/Llovind/Human_Firewall.git Human_Firewall-demo
-cd Human_Firewall-demo
-git -c http.version=HTTP/1.1 sparse-checkout set backend dashboard gophish proxy ml scripts docs
+git clone https://github.com/Llovind/Human_Firewall.git Human_Firewall-clean
+cd Human_Firewall-clean
 ```
 
-This procedure was tested against commit `4c58735`; local resulting Git packs were
-7.32 MiB. It is a measured workaround, not a guarantee for another network. A new
-checkout still needs private ENV/PKI initialization; never overwrite the existing
-installation or delete Docker volumes just to test a clone.
+Do not merge or push an old checkout's history back into the cleaned repository;
+doing so makes removed objects reachable again. Before moving to a new checkout:
+
+1. Preserve uncommitted work and any local-only commits. Keep the old folder as a
+   recovery copy rather than deleting it.
+2. Archive training CSVs, private ENV/PKI and data separately. Do not distribute
+   secrets or copy generated directories into the new Git index.
+3. Clone into a new folder and reapply only necessary source changes. Review each
+   patch/cherry-pick and the guard before pushing; avoid merging old branches.
+4. Restore private configuration following [lab setup](../README_SETUP.md), using
+   existing server data/CA material where appropriate. Never delete Docker
+   volumes or reinitialize an existing installation just to test a clone.
+
+The owner's existing checkout was aligned only after proving its file tree was
+identical to the published code. It still holds old objects and private backups
+for recovery, so its `.git` size is not the fresh-clone measurement above. Do not
+upload that folder as a release ZIP.
+
+Private rollback evidence includes `history-before.bundle`, a fresh original
+remote mirror, dataset archives, incremental cleanup bundles and the verified
+original-to-clean commit map. Restoring shared history requires explicit team
+coordination and new leases; rollback is not an automatic destructive command.
+The source commit IDs in old dataset records refer to the original history.
+
+See [GitHub large-file guidance](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github).
 
 ## Prevent recurrence
 
@@ -110,10 +114,22 @@ Run the focused checks without a Docker daemon or external API credentials:
 python -m unittest discover -s backend -p test_clean_code.py
 ```
 
-The existing three dashboard regression scripts, eight repository-guard checks,
-two lab-setup checks and Python syntax compilation also passed during this pass.
-The Docker daemon was unavailable on this run, so container integration tests
-and an application rebuild are not represented as new verified results.
+Verification on 11 October 2026:
+
+- All 55 existing backend regressions and the 24 new checks passed inside the
+  existing Python 3.10 application image with the current source mounted read-only,
+  networking disabled and disposable temporary databases.
+- The existing three dashboard regression scripts, eight repository-guard checks,
+  two lab-setup checks, Compose configuration and Python syntax compilation passed.
+- The offline denial-page renderer passed inside the existing proxy image.
+- All six runtime artifacts retained their checksums. Ten local datasets and their
+  private ZIP entries matched the recovery manifest.
+- The candidate and the real full GitHub clone passed integrity/size guards.
+  No reachable blob in the cleaned shared history exceeded the 10 MiB budget.
+
+This pass did not redeploy running services, rebuild application images, or repeat
+the two-device live-network demo. The existing report suite emitted a resource
+warning but passed; it is not represented as a warning-free integration run.
 
 This is targeted refactoring, not a wholesale rewrite. The large legacy SQLite
 module and its timestamp compatibility semantics remain deferred; converting

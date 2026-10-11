@@ -36,10 +36,11 @@ promise that every proposed feature is active.
 - Runtime `backend/models/domain_v3` and compatibility model artifacts are kept.
   Bulk training CSVs are now local-only, with checksums, provenance and statistics
   retained in `dataset/`. Restore the owner's dataset archive for retraining; see
-  [repository size](REPOSITORY_SIZE.md). Removing them from the index does not
-  erase earlier commits or imply that GitHub history has already been rewritten.
+  [repository size](REPOSITORY_SIZE.md). Approved shared-history pruning was
+  completed on 11 October 2026, with all branches/tags and source commits retained.
   At Daf's request, the final local code is authoritative. The team's last offline
-  experiment push is retained in Git history, not added to the final working tree.
+  experiment source is retained in Git history, not added to the final working tree;
+  bulk weights/checkpoints are available only in private recovery data.
 - `node scripts/check_submission.cjs` rejects known token formats, matching local
   credentials, generated/private paths, files over 10 MiB and total tracked content
   over 25 MiB. It is a bounded
@@ -53,6 +54,7 @@ From the repo root:
 node scripts/check_submission.cjs
 node scripts/test_check_submission.cjs
 python scripts/test_setup_lab.py
+python -m unittest discover -s backend -p test_clean_code.py
 docker compose config --quiet
 docker compose build
 ```
@@ -106,6 +108,26 @@ These are automated checks, not a replacement for Daf's two-device browser demo.
 Real cloud scans consume quota and share submitted files/URLs with providers;
 automated tests do not upload confidential files or contact malicious sample sites.
 
+## Repository optimization verification — 11 October 2026
+
+- A normal full GitHub clone succeeded after approved history pruning: 10.80 MiB
+  of Git packs versus 287.89 MiB before, approximately 96.2% smaller.
+- Every one of the 124 source/cleanup commits was checked for unchanged
+  author/committer metadata, messages and file trees except 19 approved bulk paths.
+  All five branch names and the tag were retained; no branch/tag was deleted.
+- Targeted cache, pseudonymization and heatmap refactors passed 24 new checks
+  before/after the changes. Heatmap output matched the original on 2,610 profiles.
+- All 55 existing backend checks passed using current source in isolated offline
+  containers. The three dashboard scripts, eight guard checks, two setup checks,
+  Compose validation, Python syntax compilation and offline block renderer passed.
+- Runtime models and local datasets/archives retained verified checksums. Private
+  ENV, CA material, Mailpit messages and Docker volumes were not changed.
+
+This optimization pass did not redeploy services or perform a fresh application
+image build/live-network demo. The earlier build record remains dated separately.
+Teammates must use a new clone and reapply source changes without merging old
+history; see the [migration runbook](REPOSITORY_SIZE.md).
+
 ## Must verify manually before presenting
 
 - Follow [host + VM runbook](DEMO_VM_SOC.md): role-separated OTP login, proxy ON/OFF,
@@ -117,8 +139,8 @@ automated tests do not upload confidential files or contact malicious sample sit
 - Rotate exposed historical provider credentials. The active VT and urlscan keys
   matched an old tracked handoff during this cleanup; deleting the latest file
   does not revoke the keys or erase old commits. Revoke Telegram tokens and any
-  other exposed optional-provider keys as well. No Git history rewrite/force push
-  is performed by this release.
+  other exposed optional-provider keys as well. Bulk-history pruning is not a
+  complete secret-history purge and does not revoke any exposed credential.
 - Review dataset origin/license and pitch claims. A supplied label is not verified
   ground truth. Do not claim category completeness, regulatory certification,
   zero false positives or production readiness. Local fine-tune candidates failed

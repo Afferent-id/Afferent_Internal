@@ -22,8 +22,9 @@ rotation tool**. Do not run it on Daf's working installation. On Windows, `py -3
 can be used instead of `python`. Restrict access to the generated ENV and CA keys
 to the server owner; `.gitignore` is not an OS access-control boundary.
 
-If the clone times out while downloading old experiment history, use the
-[lightweight clone procedure](docs/REPOSITORY_SIZE.md#temporary-lightweight-clone).
+Repository history was slimmed on 11 October 2026. Use a normal clone into a new
+folder; see [team migration](docs/REPOSITORY_SIZE.md#normal-clone-and-team-migration).
+Do not merge or push the old history back into the cleaned repository.
 Removing files in a new commit does not remove their historical Git objects.
 
 For LAN testing, edit `.env`: bind `WEB_BIND_IP` and `PROXY_BIND_IP` to the server's
