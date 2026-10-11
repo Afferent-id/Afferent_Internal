@@ -44,7 +44,7 @@ Repo saat ini juga punya `feature/vps-deployment`; untuk branch baru pakai `feat
   oleh orang yang memegang bagian itu. `TODO: konfirmasi siapa reviewer default untuk tiap folder`.
 - Sebelum membuka PR jalankan pemeriksaan yang sama dengan CI (lihat [CONTRIBUTING.md](CONTRIBUTING.md)).
 - PR kecil dan fokus satu topik. Jangan menyertakan screenshot, PDF, atau model baru di PR.
-- Jangan force-push ke `main`, `staging`, atau `development`. Pada feature branch sendiri boleh, selama
+- Proteksi GitHub hanya direncanakan untuk `main`; `development` dan `staging` tidak diproteksi, jadi larangan force-push di sini adalah kesepakatan tim. Jangan force-push ke `main`, `staging`, atau `development`. Pada feature branch sendiri boleh, selama
   belum ada orang lain yang memakainya.
 - Strategi merge: `TODO: pilih squash atau merge commit`. Riwayat saat ini memakai merge commit.
 

@@ -109,16 +109,14 @@ git fetch origin
 git push origin origin/development:refs/heads/staging     # mengubah remote
 ```
 
-Proteksi branch yang disarankan:
+Proteksi branch (keputusan 11 Oktober 2026: cukup `main`/production; `development` dan `staging` tidak diproteksi, tetapi tetap tanpa force-push sebagai kesepakatan):
 
 | Branch | Wajib PR | Wajib CI lulus | Review | Force-push | Hapus branch |
 | --- | --- | --- | --- | --- | --- |
 | `main` | ya, hanya dari `staging`/`hotfix/*` | ya | 1 | dilarang | dilarang |
-| `staging` | ya, hanya dari `development` | ya | 1 | dilarang | dilarang |
-| `development` | ya | ya | 1 | dilarang | dilarang |
 
 ```sh
-gh api -X PUT repos/Llovind/Human_Firewall/branches/main/protection --input protection.json   # ulangi untuk staging, development
+gh api -X PUT repos/Llovind/Human_Firewall/branches/main/protection --input protection.json   
 ```
 
 Syarat: CI belum ada. Tambahkan workflow `.github/workflows/ci.yml` (tsc, eslint, `npm test`, build, `check_submission.cjs`)
