@@ -65,3 +65,10 @@ dataset/raw/tranco/.cache/
 backend/models/domain_v1/
 backend/models/domain_v2/
 ml/artifacts/
+
+# OS and tooling files, never commit
+.DS_Store
+.playwright-mcp/
+
+# Screenshots and rendered PDFs live outside the repo (see docs/BRANCHING.md)
+docs/screenshots/
