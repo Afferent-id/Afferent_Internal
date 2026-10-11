@@ -4,6 +4,8 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const staged = process.argv.includes('--staged');
+const maxFileBytes = 10 * 1024 * 1024;
+const maxTotalBytes = 25 * 1024 * 1024;
 const args = staged
   ? ['ls-files', '-z']
   : ['ls-files', '-z', '--cached', '--others', '--exclude-standard'];
@@ -19,7 +21,7 @@ for (const name of ['.env', '.env.proxy.local']) {
     if (value.length >= 12 && !value.startsWith('replace-with-')) secrets.push(value);
   }
 }
-const blocked = /(^|\/)(?:\.env(?:\..*)?|secrets|node_modules|\.next|__pycache__|\.cache|Skill MD|investor-materials)(\/|$)|\.(?:key|pfx|p12|db|sqlite|pyc|tsbuildinfo)$/i;
+const blocked = /(^|\/)(?:\.env(?:\..*)?|secrets|node_modules|\.next|__pycache__|\.cache|Skill MD|investor-materials|Finetune LLM|results nlp|result v5|checkpoint-[^/]+)(\/|$)|\.(?:key|pfx|p12|db|sqlite|pyc|tsbuildinfo|gguf|safetensors|onnx)$/i;
 const patterns = [
   ['private key', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
   ['provider token', /(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AIza[\w-]{35}|xox[baprs]-[\w-]{20,}|\d{8,12}:[A-Za-z0-9_-]{35})/],
@@ -27,16 +29,25 @@ const patterns = [
 ];
 let failures = 0;
 let total = 0;
+let totalBytes = 0;
 for (const name of files) {
   const file = path.join(root, name);
-  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
+  if (!staged && (!fs.existsSync(file) || !fs.statSync(file).isFile())) continue;
   total++;
   const issues = [];
   if (name !== '.env.example' && blocked.test(name)) issues.push('private/generated/tooling path');
+  const size = staged
+    ? Number(execFileSync('git', ['cat-file', '-s', `:${name}`], { cwd: root }).toString().trim())
+    : fs.statSync(file).size;
+  totalBytes += size;
+  if (size > maxFileBytes) {
+    console.error(`${name}: exceeds repository file budget (10 MiB)`);
+    failures++;
+    continue; // Reject large files without reading them into memory.
+  }
   const bytes = staged
-    ? execFileSync('git', ['show', `:${name}`], { cwd: root, maxBuffer: 110 * 1024 * 1024 })
+    ? execFileSync('git', ['show', `:${name}`], { cwd: root, maxBuffer: maxFileBytes + 1024 })
     : fs.readFileSync(file);
-  if (bytes.length >= 100 * 1024 * 1024) issues.push('exceeds GitHub file limit');
   const content = bytes.toString('utf8');
   if (secrets.some(value => content.includes(value))) issues.push('matches a local credential');
   for (const [label, pattern] of patterns) {
@@ -50,6 +61,10 @@ for (const name of files) {
     failures++;
   }
 }
-console.log(`Submission guard: ${total} files checked; ${failures} files require attention.`);
+if (totalBytes > maxTotalBytes) {
+  console.error('Repository exceeds total content budget (25 MiB). Distribute training data/weights separately.');
+  failures++;
+}
+console.log(`Submission guard: ${total} files checked; ${(totalBytes / 1024 / 1024).toFixed(2)} MiB; ${failures} failures.`);
 console.log('This bounded guard is not a full secret-history or vulnerability audit.');
 process.exitCode = failures ? 1 : 0;

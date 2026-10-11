@@ -3,6 +3,8 @@
 For a private hackathon demo with 5–8 users, not public production deployment.
 Prerequisites: Git, Docker with Compose v2, and Python 3.10+ for the setup helper.
 Node 22+ is needed only for local frontend checks. No SMTP purchase is required.
+Training datasets are not required for setup. Runtime model files remain included;
+see [dataset instructions](dataset/README.md) only if retraining is needed.
 
 ## 1. Initialize a new checkout
 
@@ -19,6 +21,10 @@ and both lab CAs. It refuses to overwrite existing ENV or PKI; it is **not a
 rotation tool**. Do not run it on Daf's working installation. On Windows, `py -3`
 can be used instead of `python`. Restrict access to the generated ENV and CA keys
 to the server owner; `.gitignore` is not an OS access-control boundary.
+
+If the clone times out while downloading old experiment history, use the
+[lightweight clone procedure](docs/REPOSITORY_SIZE.md#temporary-lightweight-clone).
+Removing files in a new commit does not remove their historical Git objects.
 
 For LAN testing, edit `.env`: bind `WEB_BIND_IP` and `PROXY_BIND_IP` to the server's
 lab interface, configure reachable public URLs, and restrict the firewall to the
@@ -77,6 +83,7 @@ Fine-tuned experiments have not passed promotion gates; see
 
 ```sh
 node scripts/check_submission.cjs
+node scripts/test_check_submission.cjs
 python scripts/test_setup_lab.py
 cd dashboard
 npm ci

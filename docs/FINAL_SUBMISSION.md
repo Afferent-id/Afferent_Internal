@@ -33,11 +33,16 @@ promise that every proposed feature is active.
   Superseded planning and readiness documents are grouped under `archive/planning/`.
 - Credential-bearing handoffs were replaced with safe pointers. Ignored recovery
   copies are server-owner-only and must not be distributed.
-- Runtime `backend/models/domain_v3` and original dataset/model evidence are kept.
+- Runtime `backend/models/domain_v3` and compatibility model artifacts are kept.
+  Bulk training CSVs are now local-only, with checksums, provenance and statistics
+  retained in `dataset/`. Restore the owner's dataset archive for retraining; see
+  [repository size](REPOSITORY_SIZE.md). Removing them from the index does not
+  erase earlier commits or imply that GitHub history has already been rewritten.
   At Daf's request, the final local code is authoritative. The team's last offline
   experiment push is retained in Git history, not added to the final working tree.
 - `node scripts/check_submission.cjs` rejects known token formats, matching local
-  credentials, generated/private paths and GitHub-oversized files. It is a bounded
+  credentials, generated/private paths, files over 10 MiB and total tracked content
+  over 25 MiB. It is a bounded
   guard, not proof of a secret-free history or a penetration test.
 
 ## Repeatable checks
@@ -46,6 +51,7 @@ From the repo root:
 
 ```sh
 node scripts/check_submission.cjs
+node scripts/test_check_submission.cjs
 python scripts/test_setup_lab.py
 docker compose config --quiet
 docker compose build

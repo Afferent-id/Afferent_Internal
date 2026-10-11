@@ -31,6 +31,9 @@ dist/
 *.sqlite
 *.sqlite-*
 scratch/
+/output/
+/tmp/
+/*_Project_Report_*.pdf
 secrets/
 *.key
 *.pfx
@@ -53,8 +56,13 @@ proxy/ssl/
 coverage/
 docs/visual-checks/
 
-# Dataset files — tracked intentionally
-# dataset/raw/ and processed CSVs are included for reproducibility
+# Training corpora stay local; provenance, statistics and the small case study
+# remain versioned. See dataset/README.md for archive/restore instructions.
+/dataset/raw/**/*.csv
+/dataset/raw/openphish/feed.txt
+/dataset/processed/*.csv
+!/dataset/processed/dataset_stats*.csv
+!/dataset/processed/indonesian_threat_casestudy.csv
 dataset/cache/
 dataset/.tld_cache/
 dataset/raw/tranco/.cache/
@@ -65,3 +73,13 @@ dataset/raw/tranco/.cache/
 backend/models/domain_v1/
 backend/models/domain_v2/
 ml/artifacts/
+
+# Offline experiments are distributed separately, never in normal Git history.
+/Finetune LLM/
+/results nlp/
+/result v5/
+**/checkpoint-*/
+*.gguf
+*.safetensors
+*.onnx
+**/optimizer.pt
