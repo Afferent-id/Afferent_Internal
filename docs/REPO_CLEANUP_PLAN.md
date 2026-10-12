@@ -11,6 +11,8 @@ pengaturan repo selama audit.
 - `ui/leaderboard-flat` dihapus (tag `archive/ui-leaderboard-flat`). `external` dihapus dari remote; cadangan lokal
   `external-branch-343eea8.bundle` di folder backup. `aria-dev` dan `feature/vps-deployment` tetap ada
   (commit unik vps disimpan di tag `archive/feature-vps-deployment`).
+- Repo sekarang bernama `Afferent-id/Afferent_Internal` (sebelumnya `Llovind/Human_Firewall`).
+- Branch protection gagal dipasang (HTTP 403: butuh GitHub Pro atau repo public). Diputuskan 12 Oktober: tanpa proteksi; aturan PR hanya kesepakatan tim.
 - Di bagian bawah, `main` berarti `prod` dan proteksi hanya direncanakan untuk `prod`.
 - Daftar branch di tabel bagian 1 adalah keadaan saat audit, bukan keadaan sekarang.
 
@@ -126,7 +128,7 @@ Proteksi branch (keputusan 11 Oktober 2026: cukup `main`/production; `developmen
 | `main` | ya, hanya dari `staging`/`hotfix/*` | ya | 1 | dilarang | dilarang |
 
 ```sh
-gh api -X PUT repos/Llovind/Human_Firewall/branches/main/protection --input protection.json   
+gh api -X PUT repositories/1280858980/branches/prod/protection --input protection.json   
 ```
 
 Syarat: CI belum ada. Tambahkan workflow `.github/workflows/ci.yml` (tsc, eslint, `npm test`, build, `check_submission.cjs`)

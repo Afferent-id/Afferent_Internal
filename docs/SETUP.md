@@ -21,8 +21,8 @@ dijalankan pada 2026-10-10 di macOS (Darwin 25.5, Python 3.14.7, Node 26.5.0, np
 ### Stack penuh (Docker) — jalur resmi
 
 ```sh
-git clone git@github.com:Llovind/Human_Firewall.git
-cd Human_Firewall
+git clone git@github.com:Afferent-id/Afferent_Internal.git
+cd Afferent_Internal
 python scripts/setup_lab.py --server-host 127.0.0.1          # buat .env + .env.proxy.local
 python scripts/setup_lab.py --certificates --server-host 127.0.0.1   # buat CA lab di secrets/
 docker compose up -d --build gophish mailpit

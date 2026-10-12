@@ -47,8 +47,8 @@ any credential; rotate exposed keys independently.
 Run in a parent directory and choose a new destination name if it already exists:
 
 ```sh
-git clone https://github.com/Llovind/Human_Firewall.git Human_Firewall-clean
-cd Human_Firewall-clean
+git clone https://github.com/Afferent-id/Afferent_Internal.git Afferent_Internal-clean
+cd Afferent_Internal-clean
 ```
 
 Do not merge or push an old checkout's history back into the cleaned repository;

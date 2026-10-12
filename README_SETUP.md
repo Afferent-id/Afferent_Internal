@@ -9,8 +9,8 @@ see [dataset instructions](dataset/README.md) only if retraining is needed.
 ## 1. Initialize a new checkout
 
 ```sh
-git clone https://github.com/Llovind/Human_Firewall.git
-cd Human_Firewall
+git clone https://github.com/Afferent-id/Afferent_Internal.git
+cd Afferent_Internal
 python scripts/setup_lab.py --server-host 127.0.0.1
 python scripts/setup_lab.py --certificates --server-host 127.0.0.1
 ```
