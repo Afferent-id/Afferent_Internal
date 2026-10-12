@@ -3,7 +3,7 @@
 Dokumen ini untuk developer baru. Semua klaim diturunkan dari kode di repo pada commit `c6bd8ef`;
 yang tidak bisa dipastikan ditandai `TODO: konfirmasi ke tim`.
 
-AFFERENT (nama repo/remote: *Human_Firewall*) adalah platform lab/demo (target 5–8 pengguna, bukan
+AFFERENT (nama repo/remote: *Afferent_Internal* di organisasi Afferent-id; sebelumnya *Human_Firewall*) adalah platform lab/demo (target 5–8 pengguna, bukan
 produksi publik) untuk awareness phishing, pelaporan karyawan, dan pemantauan traffic lewat proxy
 terpusat yang dikendalikan SOC. Lihat batas klaim di [README](../README.md).
 

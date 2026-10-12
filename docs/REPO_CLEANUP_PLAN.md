@@ -16,6 +16,10 @@ pengaturan repo selama audit.
 - Di bagian bawah, `main` berarti `prod` dan proteksi hanya direncanakan untuk `prod`.
 - Daftar branch di tabel bagian 1 adalah keadaan saat audit, bukan keadaan sekarang.
 
+> **Arsip audit.** Bagian 1 sampai 7 di bawah adalah catatan audit 11 Oktober 2026 dan sengaja tidak diubah.
+> Di dalamnya `main` masih ada, `staging` dan `prod` belum ada, dan proteksi branch masih direncanakan.
+> Keadaan sekarang hanya ada di bagian 0.
+
 ## 1. Keadaan saat ini (saat audit)
 
 | Branch remote | Tip | Penulis terakhir | Tanggal | Merged ke development | Merged ke main | Di belakang / di depan development | PR terbuka | Klasifikasi |
