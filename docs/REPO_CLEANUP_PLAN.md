@@ -4,7 +4,17 @@ Disusun 11 Oktober 2026 dari audit baca-saja. **Belum ada perintah di dokumen in
 Semua langkah di bawah menunggu persetujuan manusia. Tidak ada push, hapus, rename, atau perubahan
 pengaturan repo selama audit.
 
-## 1. Keadaan saat ini
+## 0. Status 12 Oktober 2026 (sudah dijalankan atas persetujuan pemilik)
+
+- `main` digabung ke `development` (merge), lalu `main` dihapus dari remote. Tag arsip `archive/main-20261011` (22caebd).
+- Default branch repo: `development`. Branch baru `staging` dan `prod` (sama dengan `development`, tanpa proteksi).
+- `ui/leaderboard-flat` dihapus (tag `archive/ui-leaderboard-flat`). `external` dihapus dari remote; cadangan lokal
+  `external-branch-343eea8.bundle` di folder backup. `aria-dev` dan `feature/vps-deployment` tetap ada
+  (commit unik vps disimpan di tag `archive/feature-vps-deployment`).
+- Di bagian bawah, `main` berarti `prod` dan proteksi hanya direncanakan untuk `prod`.
+- Daftar branch di tabel bagian 1 adalah keadaan saat audit, bukan keadaan sekarang.
+
+## 1. Keadaan saat ini (saat audit)
 
 | Branch remote | Tip | Penulis terakhir | Tanggal | Merged ke development | Merged ke main | Di belakang / di depan development | PR terbuka | Klasifikasi |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

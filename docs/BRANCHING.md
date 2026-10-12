@@ -1,13 +1,12 @@
 # Alur branch
 
-Status: **usulan**, belum disetujui tim (Lovind dan Farrel). Alur `staging` baru berlaku setelah
-branch itu dibuat (lihat [REPO_CLEANUP_PLAN.md](REPO_CLEANUP_PLAN.md)). Sampai saat itu, `development`
-adalah branch integrasi dan `main` tetap dipakai apa adanya.
+Mulai 12 Oktober 2026 repo tidak punya `main`. Branch yang ada hanya `development` (default), `staging`, dan `prod`.
+`staging` dan `prod` baru dibuat dan masih sama dengan `development`. Riwayat pembersihan ada di [REPO_CLEANUP_PLAN.md](REPO_CLEANUP_PLAN.md).
 
 ## Alur
 
 ```
-feat/* fix/* ui/* docs/* chore/*  ->  development  ->  staging  ->  main (production)
+feat/* fix/* ui/* docs/* chore/*  ->  development  ->  staging  ->  prod (production)
                                                                       ^
                                               hotfix/* ---------------+  (lalu back-merge ke development)
 ```
@@ -16,7 +15,7 @@ feat/* fix/* ui/* docs/* chore/*  ->  development  ->  staging  ->  main (produc
 | --- | --- | --- |
 | `development` | Integrasi pekerjaan harian. Harus selalu lulus lint, test, build. | Hanya lewat PR dari feature branch |
 | `staging` | Kandidat rilis, dicoba di lingkungan uji (demo VM/lab). | Hanya lewat PR dari `development` |
-| `main` | Production. Yang ada di sini adalah yang dipakai/dirilis. | Hanya lewat PR dari `staging` (atau `hotfix/*`, lihat bawah) |
+| `prod` | Production. Yang ada di sini adalah yang dipakai/dirilis. | Hanya lewat PR dari `staging` (atau `hotfix/*`, lihat bawah) |
 
 Branch `aria-dev` dan `external` berada di luar alur ini. Keduanya akan dipindahkan oleh pemiliknya
 dan tidak diatur dokumen ini.
@@ -38,24 +37,24 @@ Repo saat ini juga punya `feature/vps-deployment`; untuk branch baru pakai `feat
 
 ## Aturan PR
 
-- Target default: `development`. Target `staging` hanya dari `development`; target `main` hanya dari `staging` atau `hotfix/*`.
-- Merge `staging` -> `main` hanya lewat PR, tidak pernah push langsung.
+- Target default: `development`. Target `staging` hanya dari `development`; target `prod` hanya dari `staging` atau `hotfix/*`.
+- Merge `staging` -> `prod` hanya lewat PR, tidak pernah push langsung.
 - Minimal 1 reviewer yang bukan pembuat PR. Perubahan di `backend/` (auth, proxy, database) sebaiknya direview
   oleh orang yang memegang bagian itu. `TODO: konfirmasi siapa reviewer default untuk tiap folder`.
 - Sebelum membuka PR jalankan pemeriksaan yang sama dengan CI (lihat [CONTRIBUTING.md](CONTRIBUTING.md)).
 - PR kecil dan fokus satu topik. Jangan menyertakan screenshot, PDF, atau model baru di PR.
-- Proteksi GitHub hanya direncanakan untuk `main`; `development` dan `staging` tidak diproteksi, jadi larangan force-push di sini adalah kesepakatan tim. Jangan force-push ke `main`, `staging`, atau `development`. Pada feature branch sendiri boleh, selama
+- Proteksi GitHub hanya direncanakan untuk `prod`; `development` dan `staging` tidak diproteksi, jadi larangan force-push di sini adalah kesepakatan tim. Jangan force-push ke `prod`, `staging`, atau `development`. Pada feature branch sendiri boleh, selama
   belum ada orang lain yang memakainya.
 - Strategi merge: `TODO: pilih squash atau merge commit`. Riwayat saat ini memakai merge commit.
 
 ## Hotfix
 
-Hotfix boleh langsung masuk `main` hanya jika production rusak atau ada celah keamanan yang tidak bisa menunggu
+Hotfix boleh langsung masuk `prod` hanya jika production rusak atau ada celah keamanan yang tidak bisa menunggu
 siklus staging:
 
-1. Cabang dari `main`: `hotfix/<topik>`.
-2. PR ke `main` dengan 1 reviewer dan CI lulus.
-3. Segera setelah merge, back-merge `main` ke `development` (dan `staging` bila ada) lewat PR, supaya
+1. Cabang dari `prod`: `hotfix/<topik>`.
+2. PR ke `prod` dengan 1 reviewer dan CI lulus.
+3. Segera setelah merge, back-merge `prod` ke `development` (dan `staging` bila ada) lewat PR, supaya
    perbaikan tidak hilang pada rilis berikutnya.
 
 ## Konvensi commit
@@ -74,6 +73,6 @@ Hindari commit tanpa jenis dan `wip`.
 - Model yang dibutuhkan aplikasi saat runtime (`backend/models/domain_v3`, Char-BiLSTM) tetap di Git selama
   kecil. Batas yang diperiksa `node scripts/check_submission.cjs`: 10 MiB per file, 25 MiB total.
 - Jika ada artefak besar yang harus dibagikan, pakai GitHub Release atau Git LFS. Keduanya **belum disiapkan**
-  (lihat `docs/REPOSITORY_SIZE.md` di `main`). Putuskan dulu sebelum mulai.
+  (lihat `docs/REPOSITORY_SIZE.md`). Putuskan dulu sebelum mulai.
 - Riwayat repo dipangkas pada 11 Oktober 2026. Jangan merge atau push riwayat checkout lama; ambil perubahan
   dengan `git cherry-pick` atau patch ke branch baru dari `origin/development`.
