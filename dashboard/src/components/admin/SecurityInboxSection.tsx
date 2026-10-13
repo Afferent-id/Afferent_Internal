@@ -61,19 +61,18 @@ export default function SecurityInboxSection({ canDecideAccess = false }: { canD
   ];
 
   return (
-    <section className="ops-page" aria-labelledby="inbox-title">
-      <div className="ops-intro">
-        <div><h3 id="inbox-title" style={{ fontSize: 16, fontWeight: 600 }}>{t('inbox.title')}</h3><p className="emp-muted">{t('inbox.desc')}</p></div>
-        <button type="button" className="btn" onClick={refresh} disabled={isLoading}><RefreshCw size={14} aria-hidden="true" /> {t('inbox.refresh')}</button>
-      </div>
+    <section className="ops-page" aria-label={t('inbox.title')}>
       <div className="exec-kpis">
         <KpiCard label={t('inbox.m.reports')} value={data?.reports.length ?? '—'} />
         <KpiCard label={t('inbox.m.low', { n: data?.threshold ?? '—' })} value={data?.employees.length ?? '—'} />
         <KpiCard label={t('inbox.m.mail')} value={<span style={{ fontSize: 18 }}>Mailpit</span>} hint={data?.automatic ? t('inbox.m.mail.auto') : t('inbox.m.mail.manual')} />
       </div>
       {error && <p className="field-error" role="alert">{t('inbox.err.refresh')}</p>}
-      <div className="seg" role="group" aria-label={t('inbox.tabs')} style={{ flexWrap: 'wrap' }}>
-        {tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-pressed={tab === id} onClick={() => setTab(id)}><Icon size={14} aria-hidden="true" />{label}</button>)}
+      <div className="ops-toolbar">
+        <div className="seg" role="group" aria-label={t('inbox.tabs')} style={{ flexWrap: 'wrap' }}>
+          {tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-pressed={tab === id} onClick={() => setTab(id)}><Icon size={14} aria-hidden="true" />{label}</button>)}
+        </div>
+        <button type="button" className="btn" onClick={refresh} disabled={isLoading}><RefreshCw size={14} aria-hidden="true" /> {t('inbox.refresh')}</button>
       </div>
 
       {isLoading && !data && tab !== 'access' && <StateMessage variant="loading" title={t('inbox.loading')} />}
