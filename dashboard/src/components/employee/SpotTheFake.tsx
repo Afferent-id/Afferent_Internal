@@ -104,7 +104,7 @@ export default function SpotTheFake({ email, division, onBack, onTakeQuiz, onSco
     <div className="game-wrap">
       <button type="button" className="btn" onClick={onBack}><ArrowLeft size={16} aria-hidden="true" />{t('game.back')}</button>
       <section className="emp-card game-card" aria-labelledby="game-title">
-        <h2 id="game-title">{t('game.title')}</h2>
+        <h1 id="game-title">{t('game.title')}</h1>
         {eligibilityFailed && <StateMessage variant="error" title={t('common.retry')} compact action={{ label: t('common.retry'), onClick: () => window.location.reload() }} />}
         {!eligibility && !eligibilityFailed && <StateMessage variant="loading" title={t('game.checking')} lines={3} />}
 

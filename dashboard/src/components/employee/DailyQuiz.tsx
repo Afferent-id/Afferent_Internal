@@ -87,7 +87,7 @@ export default function DailyQuiz({ email, fallbackStreak, onBack, onAnswered }:
     <div className="game-wrap">
       <button type="button" className="btn" onClick={onBack}><ArrowLeft size={16} aria-hidden="true" />{t('quiz.back')}</button>
       <section className="emp-card game-card quiz-card" aria-labelledby="quiz-title">
-        <h2 id="quiz-title">{t('quiz.title')}</h2>
+        <h1 id="quiz-title">{t('quiz.title')}</h1>
         {load.state === 'loading' && <StateMessage variant="loading" title={t('quiz.loading')} lines={4} />}
         {load.state === 'error' && <StateMessage variant="error" title={t('quiz.error.title')} why={load.message || undefined} action={{ label: t('common.retry'), onClick: retry }} />}
 

@@ -66,7 +66,7 @@
 .game-wrap { display: grid; gap: var(--space-4); max-width: 960px; margin: 0 auto; }
 .game-wrap > .btn { justify-self: start; }
 .game-card { display: grid; gap: var(--space-6); padding: var(--space-6); }
-.game-card > h2 { margin: 0; }
+.game-card > h2, .game-card > h1 { margin: 0; font-size: 16px; line-height: 1.4; font-weight: 600; letter-spacing: 0; }
 .game-card > * { min-width: 0; }
 .game-intro { color: var(--text-secondary); font-size: var(--text-base); line-height: 1.6; max-width: 70ch; }
 .game-lock { display: grid; justify-items: start; gap: 8px; padding: 8px 0; color: var(--text-secondary); }

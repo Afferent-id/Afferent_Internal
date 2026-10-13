@@ -16,7 +16,7 @@ const page = fs.readFileSync('src/app/auth/page.tsx', 'utf8');
 assert.ok(!/LanguageSwitch|ThemeToggle/.test(page), 'sign-in renders neither the language nor the theme buttons');
 assert.ok(/useTheme\(\)/.test(page), 'the theme still follows the system on the sign-in page');
 assert.ok(!/login-lang/.test(fs.readFileSync('src/app/auth/auth.css', 'utf8')), 'no leftover styles for the removed buttons');
-assert.match(fs.readFileSync('src/app/auth/auth.css', 'utf8'), /\.login-story h1 \{[^}]*font-weight: 700/, 'headline is bold');
+assert.match(fs.readFileSync('src/app/auth/auth.css', 'utf8'), /\.login-story h2 \{[^}]*font-weight: 700/, 'headline is bold');
 
 const messages = load('src/i18n/messages.ts');
 const { pickBrowserLanguage } = load('src/i18n/browserLanguage.ts', { '@/i18n/messages': messages });

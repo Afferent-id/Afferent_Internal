@@ -40,7 +40,7 @@
 .sb-count { color: var(--pop-blue-text); background: var(--pop-blue-bg); border-color: transparent; font-weight: 700; }
 
 /* Cards that explain themselves get a small coloured marker before the title. */
-.emp-card > h2::before, .emp-card-head h2::before, .exec-card > h3::before, .ops-head h3::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 3px; background: var(--pop-blue); vertical-align: 1px; }
+.emp-card > h2::before, .game-card > h1::before, .emp-card-head h2::before, .exec-card > h3::before, .ops-head h3::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 3px; background: var(--pop-blue); vertical-align: 1px; }
 .emp-area-activity h2::before, .exec-grid > :nth-child(2n) h3::before { background: var(--pop-teal); }
 .emp-main-grid ~ .emp-card h2::before { background: var(--pop-amber); }
 
@@ -91,7 +91,7 @@
 .sb-link[aria-current="page"]::before { content: ""; position: absolute; left: 4px; top: 50%; width: 4px; height: 18px; margin-top: -9px; border-radius: 4px; background: var(--accent); }
 .sb-search { border-radius: 999px; }
 .avatar { background: var(--pop-violet-bg); color: var(--pop-violet-text); border-color: transparent; }
-.emp-card > h2::before, .emp-card-head h2::before, .exec-card > h3::before, .ops-head h3::before { border-radius: 50%; }
+.emp-card > h2::before, .game-card > h1::before, .emp-card-head h2::before, .exec-card > h3::before, .ops-head h3::before { border-radius: 50%; }
 
 /* Small moments of delight, off when the person asks for less motion. */
 .wave { display: inline-block; transform-origin: 70% 70%; }

@@ -170,7 +170,7 @@ export default function AuthPage() {
           <div className="login-eyebrow-wrap">
             <span className="login-eyebrow"><Radar size={15} /> {t('auth.hero.eyebrow')}</span>
           </div>
-          <h1>{t('auth.hero.title')}</h1>
+          <h2>{t('auth.hero.title')}</h2>
           <p>
             {t('auth.hero.body')}
           </p>
@@ -201,7 +201,7 @@ export default function AuthPage() {
             <>
               <div className="login-heading">
                 <span className="login-kicker">{t('auth.welcome')}</span>
-                <h2>{t('auth.title')}</h2>
+                <h1>{t('auth.title')}</h1>
                 <p>{t('auth.subtitle')}</p>
               </div>
               {sessionEnded && <div className="login-notice" role="status"><strong>{t('auth.sessionEnded.title')}</strong>{t('auth.sessionEnded.body')}</div>}
@@ -233,7 +233,7 @@ export default function AuthPage() {
             <>
               <div className="login-heading">
                 <span className="otp-icon"><KeyRound size={22} /></span>
-                <h2>{t('auth.otp.title')}</h2>
+                <h1>{t('auth.otp.title')}</h1>
                 <p>{t('auth.otp.sent', { email: maskedEmail })}</p>
               </div>
               <form onSubmit={handleOtp} className="login-form">
@@ -270,7 +270,7 @@ export default function AuthPage() {
           {step === 'success' && (
             <div className="login-success" role="status">
               <CheckCircle2 size={52} />
-              <h2>{t('auth.success.title')}</h2>
+              <h1>{t('auth.success.title')}</h1>
               <p>{t('auth.success.body')}</p>
               <span className="login-spinner dark" />
             </div>
