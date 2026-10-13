@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 
 export interface Column<T> {
@@ -31,6 +31,25 @@ interface DataTableProps<T> {
 /** One table for incidents, traffic, accounts, campaigns and clauses. */
 export default function DataTable<T>({ caption, columns, rows, rowKey, onRowClick, selectedKey, density = 'compact', empty }: DataTableProps<T>) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  // Which sides still have more to scroll to. Empty when the table fits, so a table that fits looks exactly as before.
+  const [more, setMore] = useState('');
+  useEffect(() => {
+    const node = wrap.current;
+    if (!node) return;
+    const update = () => {
+      const left = node.scrollLeft > 1;
+      const right = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
+      setMore(`${left ? 'left ' : ''}${right ? 'right' : ''}`.trim());
+    };
+    const frame = window.requestAnimationFrame(update);
+    node.addEventListener('scroll', update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    const table = node.firstElementChild;
+    if (table) observer.observe(table);
+    return () => { window.cancelAnimationFrame(frame); node.removeEventListener('scroll', update); observer.disconnect(); };
+  }, [rows.length, columns.length]);
 
   const sorted = useMemo(() => {
     if (!sort) return rows;
@@ -52,7 +71,7 @@ export default function DataTable<T>({ caption, columns, rows, rowKey, onRowClic
 
   if (rows.length === 0 && empty) return <>{empty}</>;
   return (
-    <div className="table-wrap" data-density={density} role="region" aria-label={caption} tabIndex={0}>
+    <div ref={wrap} className="table-wrap" data-density={density} data-more={more || undefined} role="region" aria-label={caption} tabIndex={0}>
       <table className="data-table">
         <caption className="visually-hidden">{caption}</caption>
         <thead>
