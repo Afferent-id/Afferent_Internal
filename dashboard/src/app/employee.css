@@ -63,10 +63,11 @@
 
 
 /* ── Spot the Fake and Daily quiz ───────────────────────────────────── */
-.game-wrap { display: grid; gap: 16px; max-width: 1040px; margin: 0 auto; }
+.game-wrap { display: grid; gap: var(--space-4); max-width: 960px; margin: 0 auto; }
 .game-wrap > .btn { justify-self: start; }
-.game-card { display: grid; gap: 16px; }
+.game-card { display: grid; gap: var(--space-6); padding: var(--space-6); }
 .game-card > h2 { margin: 0; }
+.game-card > * { min-width: 0; }
 .game-intro { color: var(--text-secondary); font-size: var(--text-base); line-height: 1.6; max-width: 70ch; }
 .game-lock { display: grid; justify-items: start; gap: 8px; padding: 8px 0; color: var(--text-secondary); }
 .game-lock svg { color: var(--accent); }
@@ -74,16 +75,17 @@
 .game-timer { display: grid; gap: 2px; padding: 10px 14px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); }
 .game-timer span { font-size: var(--text-xs); color: var(--text-muted); }
 .game-timer b { font-size: 24px; }
-.game-compare { min-height: 84px; padding: 12px 14px; background: var(--bg-elevated); border: 1px dashed var(--border-control); border-radius: var(--radius-md); }
+.game-compare { min-height: 88px; padding: var(--space-4); background: var(--bg-elevated); border: 1px dashed var(--border-control); border-radius: var(--radius-md); }
 .game-compare-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.game-compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.game-compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
 .game-compare-grid dt { font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); }
 .game-compare-grid dd { font-size: var(--text-sm); overflow-wrap: anywhere; }
-.game-portals { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-.game-portal { display: grid; gap: 8px; }
+.game-portals, .game-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+.game-portal { display: grid; grid-template-rows: auto 1fr; gap: var(--space-2); min-width: 0; }
 .game-portal-name { font-size: var(--text-base); font-weight: 600; letter-spacing: 0; }
 /* The two sign-in pages imitate real websites, so they stay light in both themes on purpose. */
-.fake-browser { display: grid; gap: 12px; padding: 14px; background: #f1f3f6; border: 1px solid #c7ced8; border-radius: var(--radius-md); color: #1f2937; }
+.fake-browser { display: grid; align-content: space-between; gap: var(--space-3); padding: var(--space-4); background: #f1f3f6; border: 1px solid #c7ced8; border-radius: var(--radius-md); color: #1f2937; }
+.fake-browser, .fake-browser > * { min-width: 0; }
 .fake-address { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #ffffff; border: 1px solid #c7ced8; border-radius: 999px; font-size: 12px; color: #475569; }
 .fake-address .mono { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .fake-card { display: grid; gap: 8px; max-width: 280px; margin: 0 auto; padding: 18px; width: 100%; background: #ffffff; border-radius: var(--radius-sm); text-align: center; }
@@ -96,9 +98,9 @@
 .game-pin { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; font: inherit; font-size: 12px; font-weight: 700; color: #1d4ed8; background: #ffffff; border: 2px solid #1d4ed8; border-radius: 50%; cursor: pointer; }
 .game-pin[aria-pressed="true"] { color: #ffffff; background: #1d4ed8; }
 .game-pin:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
-.game-answer { display: grid; gap: 12px; justify-items: start; padding-top: 12px; border-top: 1px solid var(--border); }
+.game-answer { display: grid; gap: var(--space-4); justify-items: start; padding-top: var(--space-6); border-top: 1px solid var(--border); }
+.game-answer > .game-choices { width: 100%; }
 .game-answer h3, .quiz-question { font-size: 17px; font-weight: 600; letter-spacing: 0; }
-.game-choices { display: flex; flex-wrap: wrap; gap: 8px; }
 .game-choice[aria-pressed="true"], .quiz-option[aria-pressed="true"] { border-color: var(--accent); background: var(--bg-elevated); box-shadow: inset 0 0 0 1px var(--accent); }
 .game-result { display: grid; gap: 14px; max-width: 70ch; }
 .game-result-head { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); }
@@ -110,11 +112,11 @@
 .game-clues { display: grid; gap: 10px; padding-left: 20px; }
 .game-clues li { display: grid; gap: 2px; font-size: var(--text-base); }
 .game-clues li span { color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.5; }
-.quiz-card { max-width: 720px; }
-.quiz-block { display: grid; gap: 12px; justify-items: start; }
+.quiz-card .quiz-block { max-width: 720px; }
+.quiz-block { display: grid; gap: var(--space-4); justify-items: start; width: 100%; }
 .quiz-block > .btn { margin-top: 4px; }
 .quiz-tags { display: inline-block; margin-left: 6px; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); }
-.quiz-options { display: grid; gap: 8px; width: 100%; }
+.quiz-options { display: grid; gap: var(--space-3); width: 100%; }
 .quiz-option { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; font: inherit; font-size: var(--text-base); text-align: left; color: var(--text-primary); background: var(--bg-surface); border: 1px solid var(--border-control); border-radius: var(--radius-md); cursor: pointer; min-height: 48px; }
 .quiz-option:hover:not(:disabled) { background: var(--bg-hover); }
 .quiz-option:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
@@ -126,7 +128,7 @@
 .quiz-streak { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-primary); }
 .quiz-revive { display: grid; gap: 6px; justify-items: start; padding: 12px 14px; background: var(--sev-medium-bg); border-radius: var(--radius-md); font-size: var(--text-sm); }
 .quiz-revive strong { display: inline-flex; align-items: center; gap: 6px; color: var(--sev-medium); font-size: var(--text-base); }
-@media (max-width: 640px) { .game-choices .btn { flex: 1 1 100%; } }
+@media (max-width: 640px) { .game-card { padding: var(--space-4); gap: var(--space-4); } .game-portals, .game-choices, .game-compare-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); } .game-answer { padding-top: var(--space-4); } .game-answer > .btn { width: 100%; } }
 
 /* Long activity text must wrap instead of widening the card on very narrow phones. */
 .emp-card, .emp-list, .emp-list li { min-width: 0; }
