@@ -8,6 +8,8 @@ export interface DonutDataItem {
   name: string;
   value: number;
   color: string;
+  /** A different shape per series, so the legend never relies on colour alone. */
+  shape?: 'circle' | 'triangle' | 'diamond' | 'square';
   borderColor?: string;
   share?: string;
 }
@@ -19,6 +21,11 @@ export interface TremorDonutCardProps {
   totalLabel?: string;
   unit?: string;
   className?: string;
+}
+
+function Marker({ color, shape = 'circle' }: { color: string; shape?: DonutDataItem['shape'] }) {
+  const d = { circle: 'M6 .5a5.5 5.5 0 100 11 5.5 5.5 0 000-11z', triangle: 'M6 .8l5.6 10H.4z', diamond: 'M6 .6L11.4 6 6 11.4.6 6z', square: 'M1 1h10v10H1z' }[shape];
+  return <svg className="donut-marker" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d={d} fill={color} /></svg>;
 }
 
 /** A donut with a legend that carries the numbers, so no value is shown by colour alone. */
@@ -50,7 +57,7 @@ export function TremorDonutCard({ title, description, data, totalLabel, unit, cl
           <ul className="donut-legend">
             {data.map(item => (
               <li key={item.name}>
-                <i style={{ background: item.color }} aria-hidden="true" />
+                <Marker color={item.color} shape={item.shape} />
                 <span>{item.name}</span>
                 <b>{item.value}{unit ? ` ${unit}` : ''}</b>
                 <small>{share(item.value)}</small>

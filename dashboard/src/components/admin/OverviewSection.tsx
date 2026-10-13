@@ -3,13 +3,14 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import type { Stats, Incident, ThreatCacheEntry, AISummary, BehaviorScore, ComplianceSummary } from '@/components/admin/types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { TremorDonutCard } from '@/components/admin/TremorDonutCard';
 import KpiCard from '@/components/ui/KpiCard';
 import SeverityBadge from '@/components/ui/SeverityBadge';
 import { useI18n } from '@/i18n/I18nProvider';
 import { useNow } from '@/hooks/useNow';
 import { formatAgo } from '@/lib/relativeTime';
+import type { MessageKey } from '@/i18n/messages';
 
 interface OverviewSectionProps {
   readOnly: boolean;
@@ -25,6 +26,13 @@ interface OverviewSectionProps {
   behaviorUpdated: boolean;
   onSelectIncident?: (inc: Incident) => void;
   onRefreshSummary?: () => void;
+}
+
+/** The value and a word at the end of each bar, so a reader never has to tell the colours apart. */
+function BarLabel({ x, y, width, height, value, t }: { x?: number | string; y?: number | string; width?: number | string; height?: number | string; value?: number | string; t: (key: MessageKey) => string }) {
+  const score = Number(value);
+  const word = score >= 80 ? t('ov.people.good') : score >= 50 ? t('ov.people.moderate') : t('ov.people.atrisk');
+  return <text x={Number(x) + Number(width) + 6} y={Number(y) + Number(height) / 2} dominantBaseline="central" fontSize={12} fill="var(--text-primary)">{score} · {word}</text>;
 }
 
 const nameOf = (u: BehaviorScore, fallback: string) =>
@@ -47,10 +55,10 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
   const severity = { critical: 0, high: 0, medium: 0, low: 0 };
   incidents.forEach(inc => { const key = (inc.severity || '').toLowerCase() as keyof typeof severity; if (key in severity) severity[key] += 1; });
   const donut = [
-    { name: t('ov.sev.critical'), value: severity.critical, color: 'var(--sev-critical)' },
-    { name: t('ov.sev.high'), value: severity.high, color: 'var(--sev-high)' },
-    { name: t('ov.sev.medium'), value: severity.medium, color: 'var(--sev-medium)' },
-    { name: t('ov.sev.low'), value: severity.low, color: 'var(--sev-ok)' },
+    { name: t('ov.sev.critical'), value: severity.critical, color: 'var(--chart-critical)', shape: 'circle' as const },
+    { name: t('ov.sev.high'), value: severity.high, color: 'var(--chart-high)', shape: 'triangle' as const },
+    { name: t('ov.sev.medium'), value: severity.medium, color: 'var(--chart-medium)', shape: 'diamond' as const },
+    { name: t('ov.sev.low'), value: severity.low, color: 'var(--chart-ok)', shape: 'square' as const },
   ];
 
   const total = stats?.totalIncidents ?? incidents.length;
@@ -92,13 +100,14 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
           <div style={{ height: Math.max(180, divisionData.length * 34 + 40) }}>
             {divisionData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={divisionData} margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+                <BarChart layout="vertical" data={divisionData} margin={{ top: 4, right: 96, left: 8, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
                   <XAxis type="number" domain={[0, 100]} stroke="var(--text-secondary)" fontSize={12} />
                   <YAxis type="category" dataKey="name" stroke="var(--text-secondary)" fontSize={12} width={110} />
                   <Tooltip cursor={false} itemStyle={{ color: 'var(--text-primary)' }} labelStyle={{ color: 'var(--text-secondary)' }} contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)' }} formatter={value => [value, t('ov.div.series')]} />
                   <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={16} isAnimationActive={false}>
-                    {divisionData.map(entry => <Cell key={entry.name} fill={entry.score >= 80 ? 'var(--sev-ok)' : entry.score >= 50 ? 'var(--sev-medium)' : 'var(--sev-critical)'} />)}
+                    {divisionData.map(entry => <Cell key={entry.name} fill={entry.score >= 80 ? 'var(--chart-ok)' : entry.score >= 50 ? 'var(--chart-medium)' : 'var(--chart-critical)'} />)}
+                    <LabelList dataKey="score" content={props => <BarLabel x={props.x} y={props.y} width={props.width} height={props.height} value={typeof props.value === 'number' || typeof props.value === 'string' ? props.value : undefined} t={t} />} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

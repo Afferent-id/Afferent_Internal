@@ -148,6 +148,13 @@
   --sev-low:          #1D5FA8; --sev-low-bg:      #EFF6FD;
   --sev-info:         #475569; --sev-info-bg:     #F1F5F9;
   --sev-ok:           #166534; --sev-ok-bg:       #F0FDF4;
+
+  /* Chart series: each is at least 3:1 against the white card (checked in scripts/test-chart-colors.cjs). */
+  --chart-critical:   #DC2626;
+  --chart-high:       #E8590C;
+  --chart-medium:     #C27C0E;
+  --chart-ok:         #1E9E4A;
+  --chart-low:        #2563EB;
 }
 
 /* Dark Theme Overrides */
@@ -220,6 +227,12 @@
   --sev-low:          #8cc4ff; --sev-low-bg:      rgba(140, 196, 255, 0.14);
   --sev-info:         #94a3b8; --sev-info-bg:     rgba(148, 163, 184, 0.14);
   --sev-ok:           #86efac; --sev-ok-bg:       rgba(134, 239, 172, 0.12);
+
+  --chart-critical:   #ff8575;
+  --chart-high:       #fdab6d;
+  --chart-medium:     #F7D87F;
+  --chart-ok:         #86efac;
+  --chart-low:        #8cc4ff;
 }
 
 /* ── Base ──────────────────────────────────────────────────── */

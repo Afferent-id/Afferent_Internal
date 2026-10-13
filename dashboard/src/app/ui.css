@@ -367,8 +367,8 @@ a.kpi:hover { border-color: var(--border-control); }
 .donut-center b { font-size: 24px; font-variant-numeric: tabular-nums; }
 .donut-center small { font-size: var(--text-xs); color: var(--text-secondary); }
 .donut-legend { list-style: none; display: grid; gap: 6px; flex: 1; min-width: 160px; font-size: var(--text-sm); }
-.donut-legend li { display: grid; grid-template-columns: 10px 1fr auto 40px; gap: 8px; align-items: center; }
-.donut-legend i { width: 10px; height: 10px; border-radius: 2px; }
+.donut-legend li { display: grid; grid-template-columns: 12px 1fr auto 40px; gap: 8px; align-items: center; }
+.donut-legend .donut-marker { width: 12px; height: 12px; }
 .donut-legend small { color: var(--text-muted); text-align: right; }
 .person-mini { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 

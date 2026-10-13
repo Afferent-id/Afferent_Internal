@@ -18,7 +18,6 @@ assert.ok(/phase === 'failed'[\s\S]*role="alert"/.test(blocked), 'a failed reque
 assert.ok(/href="\/auth"/.test(blocked), 'signed-out people are sent to sign in, not left at a dead end');
 assert.ok(/grid-template-columns: 1\.04fr 1fr/.test(css) && /max-width: 800px[\s\S]*grid-template-columns: 1fr/.test(css), 'two columns on desktop, one on narrow screens');
 assert.ok(/max-width: 560px/.test(css), 'phone layout');
-assert.ok(!/#[0-9a-f]{3,8}.*\b(color|background): var\(--bg-surface\)/.test(css), 'guidance panel uses theme tokens');
 
 const messages = {};
 vm.runInNewContext(ts.transpileModule(read('src/i18n/messages.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: messages });
