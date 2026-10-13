@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/i18n/I18nProvider';
-import { BookOpen, Check, Copy, Download, Globe2, Loader2, Network, ShieldCheck, WifiOff } from 'lucide-react';
+import { BookOpen, Check, ChevronDown, Copy, Download, Globe2, Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
 import Dialog from '@/components/ui/Dialog';
 import type { MessageKey } from '@/i18n/messages';
 import { knownServerMessage } from '@/lib/serverError';
+import { protectionBlockVisible } from '@/lib/requestNotices';
+import { formatAgo } from '@/lib/relativeTime';
+import { useNow } from '@/hooks/useNow';
 
 type ProxyStatus = {
   registered: boolean;
@@ -43,10 +46,13 @@ async function responseError(response: Response, fallback: string, t: (key: Mess
   }
 }
 
-export interface ProxyReport { registered: boolean; connected: boolean; checking: boolean; failed: boolean }
-
-export default function ProxyConnectionCard({ onStatus }: { onStatus?: (report: ProxyReport) => void }) {
-  const { t } = useI18n();
+/**
+ * One block for "protection is not active on this device", with one main action and the technical details folded away.
+ * It renders nothing while protection is being checked and nothing once it works, so the page starts with the dashboard.
+ */
+export default function ProxyConnectionCard() {
+  const { t, lang } = useI18n();
+  const now = useNow();
   const tRef = useRef(t);
   useEffect(() => { tRef.current = t; }, [t]);
   const [status, setStatus] = useState<ProxyStatus>({ registered: false, connected: false });
@@ -54,7 +60,8 @@ export default function ProxyConnectionCard({ onStatus }: { onStatus?: (report: 
   const [proxyProbeUrl, setProxyProbeUrl] = useState('');
   const [probeState, setProbeState] = useState<ProbeState>('checking');
   const [apiBase, setApiBase] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [booting, setBooting] = useState(true);
+  const [activating, setActivating] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -110,7 +117,7 @@ export default function ProxyConnectionCard({ onStatus }: { onStatus?: (report: 
       void loadStatus()
         .then(() => setError(''))
         .catch((err) => setError(err instanceof Error ? err.message : tRef.current('proxy.err.unavailable')))
-        .finally(() => setLoading(false));
+        .finally(() => setBooting(false));
     }, 0);
     return () => window.clearTimeout(timer);
   }, [loadStatus]);
@@ -153,7 +160,7 @@ export default function ProxyConnectionCard({ onStatus }: { onStatus?: (report: 
   }, [deviceFetch, status.registered]);
 
   const activate = async () => {
-    setLoading(true);
+    setActivating(true);
     setError('');
     try {
       const response = await deviceFetch('/api/proxy/device/register', {
@@ -167,7 +174,7 @@ export default function ProxyConnectionCard({ onStatus }: { onStatus?: (report: 
     } catch (err) {
       setError(err instanceof Error ? err.message : tRef.current('proxy.err.activate'));
     } finally {
-      setLoading(false);
+      setActivating(false);
     }
   };
 
@@ -180,52 +187,52 @@ export default function ProxyConnectionCard({ onStatus }: { onStatus?: (report: 
     } catch { /* nothing to do: the address is on screen */ }
   };
 
-  const proxyConnected = status.registered && probeState === 'connected';
-  useEffect(() => {
-    onStatus?.({ registered: status.registered, connected: status.registered && probeState === 'connected', checking: loading || (status.registered && probeState === 'checking'), failed: Boolean(error) });
-  }, [onStatus, status.registered, probeState, loading, error]);
-  const proxyFailed = status.registered && probeState === 'disconnected';
-  const tone = proxyConnected ? 'ok' : proxyFailed ? 'bad' : status.registered ? 'warn' : 'neutral';
-  const StateIcon = proxyConnected ? ShieldCheck : proxyFailed ? WifiOff : status.registered ? Network : WifiOff;
-  const title = proxyConnected
-    ? t('proxy.on.title')
-    : proxyFailed
-      ? t('proxy.failed.title')
-      : status.registered
-        ? t('proxy.registered.title')
-        : t('proxy.setup.title');
-  const body = proxyConnected ? t('proxy.on.body') : proxyFailed ? t('proxy.failed.body') : status.registered ? t('proxy.registered.body') : t('proxy.setup.body');
+  const visible = protectionBlockVisible({ booting, failedToLoad: Boolean(error), registered: status.registered, probe: probeState });
+  const body = status.registered ? t('proxy.failed.body') : t('proxy.setup.body');
+  const lastChecked = status.lastProxySeenAt ? formatAgo(status.lastProxySeenAt, lang, now) : null;
 
   return (
-    <section className="proxy-connect-card pxc" data-tone={tone} aria-live="polite">
-      <div className="pxc-main">
-        <span className="pxc-icon" aria-hidden="true"><StateIcon size={22} /></span>
-        <div>
-          <p className="pxc-eyebrow">{t('proxy.eyebrow')}</p>
-          <h2>{title}</h2>
-          <p>{body}</p>
-          {error && <p className="field-error" role="alert">{error}</p>}
-        </div>
-      </div>
-      <div className="pxc-actions">
-        <span className="emp-muted">{t('proxy.address')}</span>
-        <button type="button" className="pxc-address" onClick={copyProxy} title={t('proxy.copy')} aria-label={`${proxyUrl}. ${t('proxy.copy')}`}>
-          <Globe2 size={15} aria-hidden="true" /> <span>{proxyUrl}</span> {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-        </button>
-        {!status.registered && (
-          <button type="button" className="btn btn-primary" onClick={activate} disabled={loading}>
-            {loading ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <ShieldCheck size={16} aria-hidden="true" />}
-            {t('proxy.activate')}
-          </button>
-        )}
-        <a href="/api/proxy/ca.crt" download="afferent-proxy-ca.crt" className="btn" title={t('proxy.ca.hint')}>
-          <Download size={14} aria-hidden="true" /> {t('proxy.ca')}
-        </a>
-        <button type="button" className="btn" onClick={() => setGuideOpen(true)}><BookOpen size={14} aria-hidden="true" /> {t('setup.open')}</button>
-        {status.registered && <small className="emp-muted">{t('proxy.ip', { ip: status.sourceIpHint || t('proxy.ip.stored') })}</small>}
-      </div>
+    <>
+      {visible && (
+        <section className="proxy-connect-card pxc pxc-alert" data-tone="bad" aria-labelledby="pxc-title">
+          <div className="pxc-head">
+            <div className="pxc-main">
+              <span className="pxc-icon" aria-hidden="true"><ShieldAlert size={22} /></span>
+              <div>
+                <p className="pxc-eyebrow">{t('proxy.eyebrow')}</p>
+                <h2 id="pxc-title">{t('proxy.off.title')}</h2>
+                <p>{body}</p>
+                {error && <p className="field-error" role="alert">{error}</p>}
+              </div>
+            </div>
+            {status.registered
+              ? <button type="button" className="btn btn-primary" onClick={() => setGuideOpen(true)}><BookOpen size={16} aria-hidden="true" />{t('setup.open')}</button>
+              : <button type="button" className="btn btn-primary" onClick={activate} disabled={activating || booting}>
+                  {activating ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <ShieldCheck size={16} aria-hidden="true" />}
+                  {t('emp.next.protect.action')}
+                </button>}
+          </div>
+          <details className="pxc-details">
+            <summary><ChevronDown size={14} aria-hidden="true" />{t('proxy.details')}</summary>
+            <div className="pxc-actions">
+              <span className="emp-muted">{t('proxy.address')}</span>
+              <button type="button" className="pxc-address" onClick={copyProxy} title={t('proxy.copy')} aria-label={`${proxyUrl}. ${t('proxy.copy')}`}>
+                <Globe2 size={15} aria-hidden="true" /> <span>{proxyUrl}</span> {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+              </button>
+              <a href="/api/proxy/ca.crt" download="afferent-proxy-ca.crt" className="btn" title={t('proxy.ca.hint')}>
+                <Download size={14} aria-hidden="true" /> {t('proxy.ca')}
+              </a>
+              {status.registered || <button type="button" className="btn" onClick={() => setGuideOpen(true)}><BookOpen size={14} aria-hidden="true" /> {t('setup.open')}</button>}
+            </div>
+            <p className="pxc-facts emp-muted">
+              {status.registered && <span>{t('proxy.ip', { ip: status.sourceIpHint || t('proxy.ip.stored') })}</span>}
+              {lastChecked && <span>{t('proxy.lastChecked', { time: lastChecked })}</span>}
+            </p>
+          </details>
+        </section>
+      )}
       <SetupGuide open={guideOpen} onClose={() => setGuideOpen(false)} proxyUrl={proxyUrl} />
-    </section>
+    </>
   );
 }
 

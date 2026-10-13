@@ -41,17 +41,10 @@
 
 /* Cards that explain themselves get a small coloured marker before the title. */
 .emp-card > h2::before, .emp-card-head h2::before, .exec-card > h3::before, .ops-head h3::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 3px; background: var(--pop-blue); vertical-align: 1px; }
-.emp-grid > :nth-child(2n) h2::before, .exec-grid > :nth-child(2n) h3::before { background: var(--pop-teal); }
-.emp-grid > :nth-child(3n) h2::before { background: var(--pop-amber); }
+.emp-area-activity h2::before, .exec-grid > :nth-child(2n) h3::before { background: var(--pop-teal); }
+.emp-main-grid ~ .emp-card h2::before { background: var(--pop-amber); }
 
-/* Employee side is where the fun lives: the next step is a bold colour block. */
-.emp-page .emp-next { color: #fff; background: var(--pop-blue); border-color: transparent; }
-.emp-page .emp-next h2, .emp-page .emp-next p, .emp-page .emp-next small { color: #fff; }
-.emp-page .emp-next .eyebrow, .emp-page .emp-next .emp-eyebrow { color: rgba(255, 255, 255, .85); }
-.emp-page .emp-next .btn-primary { color: var(--pop-blue-text); background: #fff; border-color: #fff; font-weight: 700; }
-.emp-page .emp-next .btn-primary:hover { background: #eef4ff; }
-[data-theme="dark"] .emp-page .emp-next { background: #1e3a8a; }
-[data-theme="dark"] .emp-page .emp-next .btn-primary { color: #0b1b33; }
+/* Employee side is where the fun lives: a bigger, bolder greeting. */
 .emp-page .emp-greeting { font-size: 30px; font-weight: 700; }
 
 /* Quiz and game: lettered choices in four colours. */
@@ -86,16 +79,13 @@
 .btn-primary { background: var(--grad-cta); border-color: transparent; color: #fff; box-shadow: 0 6px 14px -6px rgba(37, 99, 235, .55); }
 .btn-primary:hover:not(:disabled) { background: var(--grad-cta); filter: brightness(1.06); border-color: transparent; }
 [data-theme="dark"] .btn-primary { color: #0b1b33; box-shadow: 0 6px 14px -6px rgba(125, 179, 255, .4); }
-.emp-card, .emp-next, .exec-card, .ops-card, .kpi, .incident-panel, .clause, .option-grid article, .settings-card, .pxc, .rule-grid > div, .quiz-option, .training-option, .badge-grid li { border-radius: var(--radius-md); }
+.emp-card, .exec-card, .ops-card, .kpi, .incident-panel, .clause, .option-grid article, .settings-card, .pxc, .rule-grid > div, .quiz-option, .training-option, .badge-grid li { border-radius: var(--radius-md); }
 .emp-card, .exec-card, .ops-card, .kpi, .incident-panel, .clause, .settings-card, .pxc { box-shadow: var(--shadow-card); }
 .table-wrap, .ui-dialog { border-radius: var(--radius-lg); }
 .filter-search input, .filter-select select, .field input, .field select, .field textarea, .num-input { border-radius: 12px; }
 .seg, .strip-item, .strip-static { border-radius: 999px; }
 .seg button { border-radius: 999px; }
 .chip, .sev { border-radius: 999px; }
-.emp-page .emp-next { background: linear-gradient(135deg, #1e40af, #2563eb 55%, #3b82f6); box-shadow: 0 14px 28px -14px rgba(37, 99, 235, .7); }
-[data-theme="dark"] .emp-page .emp-next { background: linear-gradient(135deg, #1e3a8a, #2549b8); }
-.emp-page .emp-next .btn-primary { background: #fff; box-shadow: none; }
 .sb-link { border-radius: 12px; }
 .sb-link[aria-current="page"] { color: var(--pop-blue-text); background: var(--pop-blue-bg); border-color: transparent; box-shadow: none; }
 .sb-link[aria-current="page"]::before { content: ""; position: absolute; left: 4px; top: 50%; width: 4px; height: 18px; margin-top: -9px; border-radius: 4px; background: var(--accent); }

@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
-import { ArrowRight, Award, CheckCircle2, ChevronRight, Flame, Shield, ShieldCheck, Trophy } from 'lucide-react';
-import ProxyConnectionCard, { type ProxyReport } from '@/components/ProxyConnectionCard';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Award, ChevronRight, Flame, Shield, ShieldCheck, Trophy } from 'lucide-react';
+import ProxyConnectionCard from '@/components/ProxyConnectionCard';
 import EmployeeUrlScanner from '@/components/EmployeeUrlScanner';
 import ReportingBadgesWidget from '@/components/ReportingBadgesWidget';
 import Dialog from '@/components/ui/Dialog';
@@ -12,6 +12,8 @@ import { useI18n } from '@/i18n/I18nProvider';
 import { useNow } from '@/hooks/useNow';
 import { usePolling } from '@/hooks/usePolling';
 import { usePreference } from '@/hooks/usePreference';
+import { useToast } from '@/components/ui/Toast';
+import { rememberAnnounced, requestsToAnnounce } from '@/lib/requestNotices';
 import { formatAgo } from '@/lib/relativeTime';
 import type { MessageKey } from '@/i18n/messages';
 
@@ -89,23 +91,25 @@ export default function EmployeeHome(props: EmployeeHomeProps) {
   const { name, email, myScore, scoreLoading, scoreError, onRetryScore, activities, activitiesError, divisionAverages, quizDone, onOpenTraining, onStartQuiz, onReportComplete } = props;
   const { t, lang } = useI18n();
   const now = useNow();
-  const [proxy, setProxy] = useState<ProxyReport | null>(null);
   const [dialog, setDialog] = useState<null | 'points' | 'badges' | 'activity'>(null);
+  const toast = useToast();
   const { data: requestData, error: requestError } = usePolling<{ requests: MyRequest[] }>('/api/access-requests', 30000);
-  const myRequests = requestData?.requests ?? [];
-  // In-app notice: answered requests stay on top until the person dismisses them (remembered in this browser).
-  const [seenRaw, setSeen] = usePreference('afferent_seen_requests', '');
-  const seen = useMemo(() => new Set(seenRaw.split(',').filter(Boolean)), [seenRaw]);
-  const unseen = myRequests.filter(item => item.status !== 'open' && !seen.has(item.id)).slice(0, 3);
-  const dismiss = (id: string) => setSeen([...seen, id].slice(-50).join(','));
-  const onProxy = useCallback((report: ProxyReport) => setProxy(report), []);
+  const myRequests = useMemo(() => requestData?.requests ?? [], [requestData]);
+  // An answered request is announced once with a short toast. It stays in the notification bell until it is read there.
+  const [announcedRaw, setAnnounced] = usePreference('afferent_toasted_requests', '');
+  const announcedHere = useRef(new Set<string>());
+  useEffect(() => {
+    const fresh = requestsToAnnounce(myRequests, announcedRaw).filter(item => !announcedHere.current.has(item.id));
+    if (fresh.length === 0) return;
+    fresh.forEach(item => announcedHere.current.add(item.id));
+    fresh.forEach(item => toast.show({
+      message: `${t(item.status === 'allowed' ? 'notif.req.allowed' : 'notif.req.denied', { domain: item.domain })}${item.decision_note ? ` ${t('req.decision.note')}: ${item.decision_note}` : ''}`,
+      tone: item.status === 'allowed' ? 'ok' : 'neutral',
+      durationMs: 9000,
+    }));
+    setAnnounced(rememberAnnounced(announcedRaw, fresh.map(item => item.id)));
+  }, [myRequests, announcedRaw, setAnnounced, toast, t]);
 
-  const protectionOn = proxy?.connected === true;
-  const protectionUnknown = proxy === null || (proxy.checking && !proxy.failed);
-  const step: 'protect' | 'quiz' | 'done' | 'unknown' =
-    protectionUnknown ? 'unknown' : !protectionOn ? 'protect' : quizDone === null ? 'unknown' : quizDone ? 'done' : 'quiz';
-
-  const goToProtection = () => document.getElementById('protection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   const shown = activities.slice(0, 5);
   const myDivIndex = myScore ? divisionAverages.findIndex(d => d.division === myScore.division) : -1;
   const maxAvg = divisionAverages[0]?.avg || MAX_POINTS;
@@ -133,47 +137,13 @@ export default function EmployeeHome(props: EmployeeHomeProps) {
     <div className="emp-home">
       <h1 className="emp-greeting">{t('emp.greeting', { name: (name || '').split(' ')[0] || '' }).replace(/\s+\./, '.')} <span className="wave" aria-hidden="true">👋</span></h1>
 
-      {unseen.length > 0 && (
-        <section className="emp-notices" aria-label={t('notice.request.title')} role="status">
-          {unseen.map(item => (
-            <div key={item.id} className="emp-notice" data-status={item.status}>
-              <div>
-                <strong>{t('notice.request.title')}</strong>
-                <span><span className="mono">{item.domain}</span> <StatusChip tone={REQUEST_TONE[item.status]}>{t(REQUEST_LABEL[item.status])}</StatusChip></span>
-                {item.decision_note && <small>{t('req.decision.note')}: {item.decision_note}</small>}
-              </div>
-              <button type="button" className="btn" onClick={() => dismiss(item.id)}>{t('notice.dismiss')}</button>
-            </div>
-          ))}
-        </section>
-      )}
+      {/* One block, only while protection is off. Nothing at all once it works. */}
+      <ProxyConnectionCard />
 
-      {/* Next step: one clear thing to do */}
-      <section className="emp-next" aria-live="polite" data-step={step}>
-        {step === 'unknown' && <StateMessage variant="loading" lines={2} compact />}
-        {step === 'protect' && <>
-          <div><span className="emp-eyebrow">{t('emp.next.eyebrow')}</span><h2>{t('emp.next.protect.title')}</h2><p>{t('emp.next.protect.body')}</p></div>
-          <button type="button" className="btn btn-primary" onClick={goToProtection}>{t('emp.next.protect.action')}<ArrowRight size={16} aria-hidden="true" /></button>
-        </>}
-        {step === 'quiz' && <>
-          <div><span className="emp-eyebrow">{t('emp.next.eyebrow')}</span><h2>{t('emp.next.quiz.title')}</h2><p>{t('emp.next.quiz.body')}</p></div>
-          <button type="button" className="btn btn-primary" onClick={onStartQuiz}>{t('emp.next.quiz.action')}<ArrowRight size={16} aria-hidden="true" /></button>
-        </>}
-        {step === 'done' && <>
-          <div><span className="emp-eyebrow"><CheckCircle2 size={14} aria-hidden="true" /> {t('emp.next.eyebrow')}</span><h2>{t('emp.next.done.title')}</h2><p>{t('emp.next.done.body')}</p></div>
-          <button type="button" className="btn" onClick={onOpenTraining}>{t('emp.next.done.action')}</button>
-        </>}
-      </section>
-
-      {/* Device protection: open until it works, then tucked away */}
-      <details className="emp-protect" id="protection" data-on={protectionOn} open={!protectionOn}>
-        <summary><ShieldCheck size={16} aria-hidden="true" />{t('emp.protect.on')}<span>{t('emp.protect.details')}</span></summary>
-        <ProxyConnectionCard onStatus={onProxy} />
-      </details>
-
-      <div className="emp-grid">
+      {/* Top area: "Check links and files" is the main action and gets the widest column, visible without scrolling. */}
+      <div className="emp-main-grid">
         {/* My safety */}
-        <section className="emp-card" aria-labelledby="emp-safety">
+        <section className="emp-card emp-area-safety" aria-labelledby="emp-safety">
           <h2 id="emp-safety">{t('emp.safety.title')}</h2>
           {scoreLoading && !myScore && <StateMessage variant="loading" title={t('emp.scoreLoading')} lines={3} />}
           {scoreError && !myScore && !scoreLoading && <StateMessage variant="error" title={t('emp.scoreError.title')} why={t('emp.scoreError.why')} action={{ label: t('common.retry'), onClick: onRetryScore }} compact />}
@@ -197,6 +167,7 @@ export default function EmployeeHome(props: EmployeeHomeProps) {
                 : <span className="emp-chips">{myScore.badges.map(b => <span key={b} className="emp-chip"><Award size={12} aria-hidden="true" />{b}</span>)}</span>}
             </div>
             <div className="emp-card-actions">
+              {quizDone === false && <button type="button" className="btn btn-primary" onClick={onStartQuiz}>{t('emp.next.quiz.action')}</button>}
               <button type="button" className="btn" onClick={onOpenTraining}><Shield size={16} aria-hidden="true" />{t('emp.training.open')}</button>
               <button type="button" className="emp-link" onClick={() => setDialog('badges')}>{t('emp.badges.see')}<ChevronRight size={14} aria-hidden="true" /></button>
               <button type="button" className="emp-link" onClick={() => setDialog('points')}>{t('emp.safety.howPoints')}<ChevronRight size={14} aria-hidden="true" /></button>
@@ -204,8 +175,13 @@ export default function EmployeeHome(props: EmployeeHomeProps) {
           </>}
         </section>
 
+
+        <div className="emp-area-scanner" data-primary="true">
+          <EmployeeUrlScanner onReportComplete={onReportComplete} />
+        </div>
+
         {/* My activity */}
-        <section className="emp-card" aria-labelledby="emp-activity">
+        <section className="emp-card emp-area-activity" aria-labelledby="emp-activity">
           <div className="emp-card-head"><h2 id="emp-activity">{t('emp.activity.title')}</h2>{activities.length > 5 && <button type="button" className="emp-link" onClick={() => setDialog('activity')}>{t('common.viewAll')}<ChevronRight size={14} aria-hidden="true" /></button>}</div>
           {activitiesError && activities.length === 0
             ? <StateMessage variant="error" title={t('emp.activity.error')} compact />
@@ -214,9 +190,6 @@ export default function EmployeeHome(props: EmployeeHomeProps) {
               : renderActivity(shown)}
         </section>
       </div>
-
-      {/* Check or report */}
-      <EmployeeUrlScanner onReportComplete={onReportComplete} />
 
       {/* My access requests: shown only once the person has asked for something */}
       {(myRequests.length > 0 || (requestError && !requestData)) && (
