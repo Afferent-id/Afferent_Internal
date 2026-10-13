@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "node scripts/validate-runtime-env.mjs && next start",
     "lint": "eslint . --max-warnings=0",
-    "test": "node scripts/test-security-report-bff.cjs && node scripts/test-proxy-decision-ui.cjs && node scripts/test-file-scan-ui.cjs && node scripts/test-access-requests-bff.cjs && node scripts/test-signin-ui.cjs"
+    "test": "node scripts/test-security-report-bff.cjs && node scripts/test-proxy-decision-ui.cjs && node scripts/test-file-scan-ui.cjs && node scripts/test-access-requests-bff.cjs && node scripts/test-signin-ui.cjs && node scripts/test-security-pages.cjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.0",

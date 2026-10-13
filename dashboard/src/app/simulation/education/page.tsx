@@ -1,7 +1,8 @@
 'use client';
 
-import { Flag, Link2, LockKeyhole, ShieldAlert } from 'lucide-react';
-import { NoticeShell, Notice, HomeLink } from '@/components/ui/NoticeShell';
+import Link from 'next/link';
+import { ArrowRight, Flag, Link2, LockKeyhole, ShieldAlert } from 'lucide-react';
+import SecurityScreen from '@/components/ui/SecurityScreen';
 import { useI18n } from '@/i18n/I18nProvider';
 
 /** Where a person lands after clicking a simulated phishing link: calm, specific, and useful. */
@@ -13,17 +14,21 @@ export default function SimulationEducation() {
     { Icon: Flag, title: t('edu.h3.title'), body: t('edu.h3.body') },
   ];
   return (
-    <NoticeShell footer={t('edu.footer')}>
-      <Notice level="medium" status={t('edu.status')} title={t('edu.title')} why={t('edu.lead')} actions={<HomeLink label={t('edu.back')} />}>
-        <div className="notice-banner" data-tone="ok"><strong><LockKeyhole size={14} aria-hidden="true" /> {t('edu.assure.title')}</strong>{t('edu.assure.body')}</div>
-        <h2 className="notice-sub">{t('edu.habits')}</h2>
-        <ol className="notice-habits">
-          {habits.map(({ Icon, title, body }) => (
-            <li key={title}><Icon size={18} aria-hidden="true" /><span><strong>{title}</strong>{body}</span></li>
-          ))}
-        </ol>
-        <div className="notice-banner"><strong>{t('edu.bookmark.title')}</strong>{t('edu.bookmark.body')}</div>
-      </Notice>
-    </NoticeShell>
+    <SecurityScreen
+      tone="education" area={t('edu.area')} status={t('edu.status')}
+      icon={<ShieldAlert size={36} strokeWidth={1.6} />}
+      eyebrow={t('edu.eyebrow')} title={t('edu.title')} lead={t('edu.lead')}
+      heroExtra={<div className="sec-assure"><LockKeyhole size={20} aria-hidden="true" /><div><strong>{t('edu.assure.title')}</strong><p>{t('edu.assure.body')}</p></div></div>}
+      actions={<Link className="btn btn-light" href="/">{t('edu.back')} <ArrowRight size={16} aria-hidden="true" /></Link>}
+      guideEyebrow={t('edu.remember')} guideTitle={t('edu.habits')} guideId="education-next"
+      footerLeft={t('edu.footer')} footerRight={t('edu.footerNote')}
+    >
+      <ol className="sec-steps">
+        {habits.map(({ Icon, title, body }, index) => (
+          <li key={title}><span className="sec-step-icon" aria-hidden="true"><Icon size={20} /></span><div><small>0{index + 1}</small><h3>{title}</h3><p>{body}</p></div></li>
+        ))}
+      </ol>
+      <div className="sec-note"><strong>{t('edu.bookmark.title')}</strong><p>{t('edu.bookmark.body')}</p></div>
+    </SecurityScreen>
   );
 }
