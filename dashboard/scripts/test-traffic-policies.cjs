@@ -36,4 +36,6 @@ const keys = [...new Set([...(wrapper + ops).matchAll(/\bt\('((?:traffic|ops)\.[
 for (const lang of ['en', 'id']) for (const key of keys) assert.ok(messages.MESSAGES[lang][key], `${lang} ${key}`);
 const css = read('src/app/ui.css');
 assert.match(css, /\.tabs \{[^}]*overflow-x: auto/, 'tab row scrolls sideways on phones instead of overflowing the page');
+assert.ok(/useScrollCue/.test(ops) && /role="region" aria-label=\{t\('ops\.alerts\.caption'\)\} tabIndex=\{0\}/.test(ops), 'alerts and traffic tables scroll with a cue and keyboard access on phones');
+assert.match(css, /\.ops-page \.table-wrap \.data-table :is\(th, td\):last-child \{ position: sticky; right: 0/, 'the Action column stays in view on phones');
 console.log('PASS: Traffic and policies has four URL-addressable tabs with badges, keeps every action and adds no endpoint');

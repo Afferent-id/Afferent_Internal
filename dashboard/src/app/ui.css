@@ -498,3 +498,12 @@ a.kpi:hover { border-color: var(--border-control); }
 .ops-fold > summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .ops-fold[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .ops-fold > .ops-card { border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+/* Live traffic and alerts on phones: keep the domain readable and let the table scroll sideways with the shared cue. */
+.ops-page .table-wrap .data-table td:has(> .mono) { min-width: 12rem; }
+.ops-page .table-wrap .data-table td .mono { overflow-wrap: anywhere; }
+@container (max-width: 560px) {
+  /* On phones the Action column stays in view while the other columns scroll under it. */
+  .ops-page .table-wrap .data-table :is(th, td):last-child { position: sticky; right: 0; background: var(--bg-surface); box-shadow: -10px 0 8px -8px rgb(0 0 0 / 18%); }
+  .ops-page .table-wrap .data-table th:last-child { background: var(--bg-elevated); }
+}

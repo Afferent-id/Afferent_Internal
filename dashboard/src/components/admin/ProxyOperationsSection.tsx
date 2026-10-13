@@ -7,6 +7,7 @@ import Dialog from '@/components/ui/Dialog';
 import SeverityBadge from '@/components/ui/SeverityBadge';
 import StateMessage from '@/components/ui/StateMessage';
 import LoadGate from '@/components/ui/LoadGate';
+import { useScrollCue } from '@/hooks/useScrollCue';
 import { loadState } from '@/lib/loadState';
 import StatusChip from '@/components/ui/StatusChip';
 import { useToast } from '@/components/ui/Toast';
@@ -207,6 +208,8 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
     traffic: traffic.length,
   }), [alerts, traffic, verdicts]);
   useEffect(() => { onOpenAlerts?.(counts.open); }, [counts.open, onOpenAlerts]);
+  const [alertsWrap, alertsMore] = useScrollCue(`${view}:${loaded}:${alerts.length}:${showAllAlerts}`);
+  const [trafficWrap, trafficMore] = useScrollCue(`${view}:${loaded}:${traffic.length}:${trafficRows}`);
   const visibleAlerts = alerts.filter(item => queueFilter === 'all' || (queueFilter === 'history' ? item.status !== 'open' || item.stalePrediction : item.status === 'open' && !item.stalePrediction && (queueFilter === 'unknown' ? item.urgency === 'Unknown' && item.source !== 'employee_report' : item.urgency === 'Critical' || item.source === 'employee_report')));
   const ago = (value: string) => formatAgo(value, lang, now);
   // Derived from the traffic window already loaded (latest 200 events), so no extra request.
@@ -268,7 +271,7 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
             <LoadGate state={feedState} errorTitle="err.alerts" compact>
             {visibleAlerts.length === 0
               ? <StateMessage variant="empty" title={t('ops.alerts.empty')} compact />
-              : <div className="table-wrap"><table className="data-table">
+              : <div ref={alertsWrap} className="table-wrap" data-more={alertsMore || undefined} role="region" aria-label={t('ops.alerts.caption')} tabIndex={0}><table className="data-table">
                   <caption className="visually-hidden">{t('ops.alerts.caption')}</caption>
                   <thead><tr><th scope="col">{t('ops.col.urgency')}</th><th scope="col">{t('ops.col.domain')}</th><th scope="col" data-secondary>{t('ops.col.reason')}</th><th scope="col" data-secondary>{t('ops.col.client')}</th><th scope="col" data-narrow-hide>{t('ops.col.time')}</th><th scope="col">{t('ops.col.action')}</th></tr></thead>
                   <tbody>
@@ -300,7 +303,7 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
             <LoadGate state={feedState} errorTitle="err.alerts" compact>
             {traffic.length === 0
               ? <StateMessage variant="empty" title={t('ops.traffic.empty')} compact />
-              : <div className="table-wrap"><table className="data-table">
+              : <div ref={trafficWrap} className="table-wrap" data-more={trafficMore || undefined} role="region" aria-label={t('ops.traffic.caption')} tabIndex={0}><table className="data-table">
                   <caption className="visually-hidden">{t('ops.traffic.caption')}</caption>
                   <thead><tr><th scope="col" data-narrow-hide>{t('ops.col.time')}</th><th scope="col">{t('ops.col.domain')}</th><th scope="col" data-secondary>{t('ops.col.client')}</th><th scope="col">{t('ops.col.decision')}</th><th scope="col" data-secondary>{t('ops.col.source')}</th><th scope="col">{t('ops.col.action')}</th></tr></thead>
                   <tbody>
