@@ -12,7 +12,8 @@ assert.match(css, /@container \(max-width: 640px\) \{ \.data-table :is\(th, td\)
 assert.match(css, /@container \(max-width: 760px\) \{ \.incident-split \.data-table :is\(th, td\)\[data-secondary\]/, 'only the incident list drops secondary columns below 760px');
 assert.match(css, /@container \(max-width: 560px\) \{ \.data-table :is\(th, td\)\[data-low\] \{ display: none; \}/, 'low-priority columns drop out below 560px');
 assert.match(css, /\.table-wrap\[data-more~="right"\] \{ box-shadow: inset/, 'a shadow marks a cut edge');
-assert.ok(/data-more=\{more \|\| undefined\}/.test(table) && /scrollLeft \+ node\.clientWidth < node\.scrollWidth/.test(table), 'the cue only appears when the table really overflows');
+const hook = fs.readFileSync('src/hooks/useScrollCue.ts', 'utf8');
+assert.ok(/data-more=\{more \|\| undefined\}/.test(table) && /useScrollCue\(/.test(table) && /scrollLeft \+ node\.clientWidth < node\.scrollWidth/.test(hook), 'the cue only appears when the table really overflows');
 assert.ok(!/\.table-wrap \{\s*background:/.test(css), 'a table that fits is drawn exactly as before');
 assert.match(css, /\.table-wrap:focus-visible/, 'the scroll box shows keyboard focus');
 const incidentColumns = queue.slice(queue.indexOf('const columns'), queue.indexOf('const detail'));

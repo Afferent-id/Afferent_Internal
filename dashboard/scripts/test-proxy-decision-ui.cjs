@@ -19,6 +19,7 @@ const shared = {
   '@/components/ui/StateMessage': { default: stub },
   '@/components/ui/StatusChip': { default: stub },
   '@/components/ui/LoadGate': { default: stub },
+  '@/hooks/useScrollCue': { useScrollCue: () => [{ current: null }, ''] },
   '@/lib/loadState': { loadState: (isLoading, error, hasData) => ({ status: hasData ? 'ready' : error ? 'error' : isLoading ? 'loading' : 'ready' }) },
   '@/components/ui/Toast': { useToast: () => ({ show() {} }) },
   '@/hooks/useNow': { useNow: () => Date.parse('2026-10-03T01:00:00Z') },
