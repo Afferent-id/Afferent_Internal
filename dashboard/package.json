@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "node scripts/validate-runtime-env.mjs && next start",
     "lint": "eslint . --max-warnings=0",
-    "test": "node scripts/test-security-report-bff.cjs && node scripts/test-proxy-decision-ui.cjs && node scripts/test-file-scan-ui.cjs && node scripts/test-access-requests-bff.cjs && node scripts/test-signin-ui.cjs && node scripts/test-security-pages.cjs && node scripts/test-employee-home.cjs && node scripts/test-game-layout.cjs && node scripts/test-chart-colors.cjs && node scripts/test-table-columns.cjs && node scripts/test-soc-shell.cjs && node scripts/test-load-states.cjs && node scripts/test-tabs.cjs"
+    "test": "node scripts/test-security-report-bff.cjs && node scripts/test-proxy-decision-ui.cjs && node scripts/test-file-scan-ui.cjs && node scripts/test-access-requests-bff.cjs && node scripts/test-signin-ui.cjs && node scripts/test-security-pages.cjs && node scripts/test-employee-home.cjs && node scripts/test-game-layout.cjs && node scripts/test-chart-colors.cjs && node scripts/test-table-columns.cjs && node scripts/test-soc-shell.cjs && node scripts/test-load-states.cjs && node scripts/test-tabs.cjs && node scripts/test-traffic-policies.cjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.0",

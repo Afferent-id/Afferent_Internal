@@ -1,24 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/admin/DashboardLayout';
 import { useI18n } from '@/i18n/I18nProvider';
 import OverviewSection from '@/components/admin/OverviewSection';
 import IncidentQueue from '@/components/admin/IncidentQueue';
-import ThreatCacheSection from '@/components/admin/ThreatCacheSection';
-import LoginHistorySection from '@/components/admin/LoginHistorySection';
 import { usePolling } from '@/hooks/usePolling';
 import { useFetchOnce } from '@/hooks/useFetchOnce';
 import { loadState } from '@/lib/loadState';
 import type { Incident, Stats, ThreatCacheEntry, AISummary, BehaviorScore, ComplianceSummary, AdminLoginEvent } from '@/components/admin/types';
 import AuditLogSection from '@/components/admin/AuditLogSection';
 import AIIntelligenceSection from '@/components/admin/AIIntelligenceSection';
-import ProxyOperationsSection from '@/components/admin/ProxyOperationsSection';
 import SecurityInboxSection from '@/components/admin/SecurityInboxSection';
+import TrafficPolicies from '@/components/admin/TrafficPolicies';
 
 export default function SOCDashboard() {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('overview');
+  // A link such as /dashboard/soc?view=policies opens Traffic and policies straight away.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (new URLSearchParams(window.location.search).has('view')) setActiveTab('threats');
+  }, []);
+  const changeTab = (tab: string) => {
+    setActiveTab(tab);
+    if (tab !== 'threats' && window.location.search) window.history.replaceState(null, '', window.location.pathname);
+  };
   const [threatTypeFilter, setThreatTypeFilter] = useState('ALL');
   const [threatActionFilter, setThreatActionFilter] = useState('ALL');
 
@@ -38,7 +45,7 @@ export default function SOCDashboard() {
   const scores = behaviorData?.scores || [];
 
   return (
-    <DashboardLayout role="soc" activeTab={activeTab} onTabChange={setActiveTab}>
+    <DashboardLayout role="soc" activeTab={activeTab} onTabChange={changeTab}>
       {activeTab === 'overview' && (
         <>
           <IncidentQueue incidents={incidents} canResolve onChanged={refreshIncidents} loading={incidentsLoading} error={Boolean(incidentsError) && !incidentData} />
@@ -64,21 +71,16 @@ export default function SOCDashboard() {
       )}
 
       {activeTab === 'threats' && (
-        <>
-          <ProxyOperationsSection />
-          <ThreatCacheSection
-            readOnly={false}
-            state={loadState(cacheLoading, cacheError, cacheData !== null, refreshCache)}
-            cacheData={cache}
-            threatTypeFilter={threatTypeFilter}
-            threatActionFilter={threatActionFilter}
-            onThreatTypeFilterChange={setThreatTypeFilter}
-            onThreatActionFilterChange={setThreatActionFilter}
-          />
-          <div style={{ marginTop: '24px' }}>
-            <LoginHistorySection readOnly={false} loginHistory={loginHistory} state={loginState} />
-          </div>
-        </>
+        <TrafficPolicies
+          cacheData={cache}
+          cacheState={loadState(cacheLoading, cacheError, cacheData !== null, refreshCache)}
+          threatTypeFilter={threatTypeFilter}
+          threatActionFilter={threatActionFilter}
+          onThreatTypeFilterChange={setThreatTypeFilter}
+          onThreatActionFilterChange={setThreatActionFilter}
+          loginHistory={loginHistory}
+          loginState={loginState}
+        />
       )}
 
       {activeTab === 'audit' && <AuditLogSection />}

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ban, CheckCircle2 } from 'lucide-react';
 import DomainSecondOpinion from './DomainSecondOpinion';
 import Dialog from '@/components/ui/Dialog';
@@ -53,8 +53,20 @@ type Traffic = {
 };
 
 const TRAFFIC_ROWS = 50;
+const TRAFFIC_STEP = 10;
+const ALERT_ROWS = 5;
 
-export default function ProxyOperationsSection() {
+interface ProxyOperationsSectionProps {
+  /** Which part of the page is showing. 'other' hides both parts here and lets `children` (the other tabs) show. */
+  view?: 'live' | 'policies' | 'other';
+  /** The tab row; it sits between the summary strip and the panels. */
+  tabs?: ReactNode;
+  /** Reports how many alerts are open, for the tab badge. */
+  onOpenAlerts?: (count: number) => void;
+  children?: ReactNode;
+}
+
+export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAlerts, children }: ProxyOperationsSectionProps = {}) {
   const { t, lang } = useI18n();
   const toast = useToast();
   const now = useNow();
@@ -64,6 +76,8 @@ export default function ProxyOperationsSection() {
   const [streamOnline, setStreamOnline] = useState(false);
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
+  const [showAllAlerts, setShowAllAlerts] = useState(false);
+  const [trafficRows, setTrafficRows] = useState(TRAFFIC_STEP);
   const [loaded, setLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [domain, setDomain] = useState('');
@@ -192,6 +206,7 @@ export default function ProxyOperationsSection() {
     blocked: verdicts.filter((item) => item.source === 'soc' && item.decision === 'block').length,
     traffic: traffic.length,
   }), [alerts, traffic, verdicts]);
+  useEffect(() => { onOpenAlerts?.(counts.open); }, [counts.open, onOpenAlerts]);
   const visibleAlerts = alerts.filter(item => queueFilter === 'all' || (queueFilter === 'history' ? item.status !== 'open' || item.stalePrediction : item.status === 'open' && !item.stalePrediction && (queueFilter === 'unknown' ? item.urgency === 'Unknown' && item.source !== 'employee_report' : item.urgency === 'Critical' || item.source === 'employee_report')));
   const ago = (value: string) => formatAgo(value, lang, now);
   // Derived from the traffic window already loaded (latest 200 events), so no extra request.
@@ -236,9 +251,9 @@ export default function ProxyOperationsSection() {
         <span className="strip-static"><b>{counts.traffic}</b>{t('ops.stat.traffic')}</span>
       </div>
       {message && <p className="debt-error" role="alert">{message}</p>}
+      {tabs}
 
-      <div className="ops-layout">
-        <div className="ops-main">
+      <div role="tabpanel" id="traffic-panel-live" aria-labelledby="traffic-tab-live" hidden={view !== 'live'} className="ops-main">
           <section className="ops-block" aria-labelledby="ops-alerts">
             <div className="ops-head"><h3 id="ops-alerts">{t('ops.alerts.title')}</h3><span className="emp-muted">{t('ops.alerts.count', { n: counts.open })}</span></div>
             <label className="ops-filter">{t('ops.filter.show')}
@@ -257,7 +272,7 @@ export default function ProxyOperationsSection() {
                   <caption className="visually-hidden">{t('ops.alerts.caption')}</caption>
                   <thead><tr><th scope="col">{t('ops.col.urgency')}</th><th scope="col">{t('ops.col.domain')}</th><th scope="col" data-secondary>{t('ops.col.reason')}</th><th scope="col" data-secondary>{t('ops.col.client')}</th><th scope="col" data-narrow-hide>{t('ops.col.time')}</th><th scope="col">{t('ops.col.action')}</th></tr></thead>
                   <tbody>
-                    {visibleAlerts.map((alert) => (
+                    {visibleAlerts.slice(0, showAllAlerts ? undefined : ALERT_ROWS).map((alert) => (
                       <tr key={alert.id}>
                         <td>{alert.stalePrediction
                           ? <SeverityBadge level="info" label={t('ops.urgency.historical')} />
@@ -276,6 +291,7 @@ export default function ProxyOperationsSection() {
                     ))}
                   </tbody>
                 </table></div>}
+            {visibleAlerts.length > ALERT_ROWS && <div className="ops-more"><button type="button" className="btn" aria-expanded={showAllAlerts} onClick={() => setShowAllAlerts(value => !value)}>{showAllAlerts ? t('ops.showFewer') : t('ops.showAll', { n: visibleAlerts.length })}</button></div>}
             </LoadGate>
           </section>
 
@@ -288,7 +304,7 @@ export default function ProxyOperationsSection() {
                   <caption className="visually-hidden">{t('ops.traffic.caption')}</caption>
                   <thead><tr><th scope="col" data-narrow-hide>{t('ops.col.time')}</th><th scope="col">{t('ops.col.domain')}</th><th scope="col" data-secondary>{t('ops.col.client')}</th><th scope="col">{t('ops.col.decision')}</th><th scope="col" data-secondary>{t('ops.col.source')}</th><th scope="col">{t('ops.col.action')}</th></tr></thead>
                   <tbody>
-                    {traffic.slice(0, TRAFFIC_ROWS).map((item) => (
+                    {traffic.slice(0, trafficRows).map((item) => (
                       <tr key={item.event_id}>
                         <td data-narrow-hide title={new Date(item.occurred_at).toLocaleString()}>{ago(item.occurred_at)}</td>
                         <td><span className="mono">{item.domain}{item.port ? `:${item.port}` : ''}</span></td>
@@ -303,21 +319,12 @@ export default function ProxyOperationsSection() {
                   </tbody>
                 </table></div>}
             </LoadGate>
-            {traffic.length > TRAFFIC_ROWS && <p className="emp-muted">{t('ops.traffic.more', { n: TRAFFIC_ROWS })}</p>}
+            {traffic.length > trafficRows && <div className="ops-more"><button type="button" className="btn" onClick={() => setTrafficRows(rows => Math.min(TRAFFIC_ROWS, rows + TRAFFIC_STEP))}>{t('ops.showMore')}</button></div>}
+            {traffic.length > TRAFFIC_ROWS && trafficRows >= TRAFFIC_ROWS && <p className="emp-muted">{t('ops.traffic.more', { n: TRAFFIC_ROWS })}</p>}
           </section>
-        </div>
-
-        <aside className="ops-side">
-          <form className="ops-card" onSubmit={submitManual} noValidate>
-            <h3>{t('ops.policy.title')}</h3>
-            <div className="field"><label htmlFor="policy-domain">{t('ops.policy.domain')}</label><input id="policy-domain" required value={domain} onChange={(event) => setDomain(event.target.value)} placeholder={t('ops.policy.placeholder')} /><small>{t('ops.policy.hint')}</small></div>
-            <div className="field"><label htmlFor="policy-action">{t('ops.policy.decision')}</label><select id="policy-action" value={action} onChange={(event) => setAction(event.target.value as 'block' | 'allow')}><option value="block">{t('ops.action.block')}</option><option value="allow">{t('ops.action.allow')}</option></select></div>
-            <div className="field" data-invalid={Boolean(policyError)}><label htmlFor="policy-reason">{t('ops.policy.reason')}</label><textarea id="policy-reason" required minLength={5} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t('ops.policy.reason.placeholder')} />{policyError && <small className="field-error" role="alert">{policyError}</small>}</div>
-            <button type="submit" className="btn btn-primary" disabled={busy === 'manual'}>{busy === 'manual' ? t('ops.policy.saving') : t('ops.policy.apply')}</button>
-          </form>
-
+          <details className="ops-fold">
+            <summary>{t('ops.blocked.title')}<span className="emp-muted">{topBlocked.length}</span></summary>
           <div className="ops-card">
-            <h3>{t('ops.blocked.title')}</h3>
             {topBlocked.length === 0 && <p className="emp-muted">{t('ops.blocked.empty')}</p>}
             <ul className="emp-list">
               {topBlocked.map((item) => (
@@ -328,7 +335,17 @@ export default function ProxyOperationsSection() {
               ))}
             </ul>
           </div>
+          </details>
+      </div>
 
+      <div role="tabpanel" id="traffic-panel-policies" aria-labelledby="traffic-tab-policies" hidden={view !== 'policies'} className="ops-policies">
+          <form className="ops-card" onSubmit={submitManual} noValidate>
+            <h3>{t('ops.policy.title')}</h3>
+            <div className="field"><label htmlFor="policy-domain">{t('ops.policy.domain')}</label><input id="policy-domain" required value={domain} onChange={(event) => setDomain(event.target.value)} placeholder={t('ops.policy.placeholder')} /><small>{t('ops.policy.hint')}</small></div>
+            <div className="field"><label htmlFor="policy-action">{t('ops.policy.decision')}</label><select id="policy-action" value={action} onChange={(event) => setAction(event.target.value as 'block' | 'allow')}><option value="block">{t('ops.action.block')}</option><option value="allow">{t('ops.action.allow')}</option></select></div>
+            <div className="field" data-invalid={Boolean(policyError)}><label htmlFor="policy-reason">{t('ops.policy.reason')}</label><textarea id="policy-reason" required minLength={5} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t('ops.policy.reason.placeholder')} />{policyError && <small className="field-error" role="alert">{policyError}</small>}</div>
+            <button type="submit" className="btn btn-primary" disabled={busy === 'manual'}>{busy === 'manual' ? t('ops.policy.saving') : t('ops.policy.apply')}</button>
+          </form>
           <div className="ops-card">
             <h3>{t('ops.recent.title')}</h3>
             {verdicts.length === 0 && <p className="emp-muted">{t('ops.recent.empty')}</p>}
@@ -341,8 +358,9 @@ export default function ProxyOperationsSection() {
               ))}
             </ul>
           </div>
-        </aside>
       </div>
+
+      {children}
 
       <Dialog open={review !== null} onClose={() => { if (!busy) setReview(null); }} busy={!!busy} size="md" title={blocking ? t('ops.dialog.block') : t('ops.dialog.allow')}>
         {review && <>
