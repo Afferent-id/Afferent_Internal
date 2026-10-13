@@ -291,8 +291,3 @@
 .login-notice { display: grid; gap: 4px; margin: 0 0 18px; padding: 12px 14px; font-size: 13px; line-height: 1.5; color: var(--lg-heading); background: var(--lg-tint); border: 1px solid var(--lg-border); border-radius: 10px; }
 .login-notice strong { font-size: 14px; }
 
-.login-lang { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-.login-lang .lang-switch button { color: var(--lg-muted); border-color: var(--lg-border); }
-.login-lang .lang-switch button[aria-pressed="true"] { color: var(--lg-heading); background: var(--lg-tint); border-color: var(--lg-accent); }
-
-.login-lang { align-items: center; gap: 8px; }

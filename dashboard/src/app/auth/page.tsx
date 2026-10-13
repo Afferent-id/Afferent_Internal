@@ -9,10 +9,9 @@ import {
 import Logo from '@/components/Logo';
 import { SESSION_ENDED_KEY, useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/i18n/I18nProvider';
-import LanguageSwitch from '@/components/ui/LanguageSwitch';
 import { ROLE_ROUTES } from '@/lib/authSession';
 import type { MessageKey } from '@/i18n/messages';
-import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/hooks/useTheme';
 import './auth.css';
 
 type LoginStep = 'credentials' | 'otp' | 'success';
@@ -39,6 +38,8 @@ export default function AuthPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: sessionLoading, refreshSession } = useAuth();
   const { t } = useI18n();
+  // No visible theme or language buttons here: the theme follows the system and the language follows the browser.
+  useTheme();
   // True when this visit follows a session that ended on its own. Read from the browser without causing a hydration mismatch.
   const sessionEnded = useSyncExternalStore(
     () => () => {},
@@ -182,7 +183,6 @@ export default function AuthPage() {
 
       <section className="login-panel">
         <div className="login-card">
-          <div className="login-lang"><LanguageSwitch /><ThemeToggle /></div>
           <div className="login-mobile-brand"><Logo variant="mark" size={42} /><span>AFFERENT</span></div>
 
           <div className="login-progress" aria-label={t('auth.steps')}>

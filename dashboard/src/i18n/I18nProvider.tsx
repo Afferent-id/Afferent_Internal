@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { usePreference } from '@/hooks/usePreference';
 import { LANGUAGES, MESSAGES, type Language, type MessageKey } from '@/i18n/messages';
+import { pickBrowserLanguage } from '@/i18n/browserLanguage';
 
 export const LANGUAGE_KEY = 'afferent_lang';
 
@@ -20,12 +21,17 @@ function format(template: string, vars?: Vars): string {
   return template.replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match));
 }
 
+const noSubscribe = () => () => {};
+const browserLanguage = () => pickBrowserLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]);
+
 const translateEnglish: Translate = (key, vars) => format(MESSAGES.en[key], vars);
 const I18nContext = createContext<I18nValue>({ lang: 'en', setLang: () => {}, t: translateEnglish });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [stored, setStored] = usePreference(LANGUAGE_KEY, 'en');
-  const lang: Language = (LANGUAGES as string[]).includes(stored) ? (stored as Language) : 'en';
+  const [stored, setStored] = usePreference(LANGUAGE_KEY, '');
+  // With no saved choice (a first visit, the sign-in page) the browser's language decides, with English as the fallback.
+  const detected = useSyncExternalStore(noSubscribe, browserLanguage, () => 'en' as Language);
+  const lang: Language = (LANGUAGES as string[]).includes(stored) ? (stored as Language) : detected;
 
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
