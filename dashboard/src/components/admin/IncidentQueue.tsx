@@ -129,12 +129,12 @@ export default function IncidentQueue({ incidents, canResolve, onChanged, loadin
 
   const columns: Column<Incident>[] = [
     { key: 'severity', header: t('inc.col.severity'), sortValue: i => RANK[normalizeSeverity(i.severity)], render: i => <SeverityBadge value={i.severity} /> },
-    { key: 'id', header: t('inc.col.id'), sortValue: i => i.id, render: i => <span className="mono">{i.id}</span> },
+    { key: 'id', header: t('inc.col.id'), sortValue: i => i.id, render: i => <span className="mono">{i.id}</span>, low: true },
     { key: 'incident', header: t('inc.col.incident'), render: i => <span className="cell-clip" title={`${i.target} · ${i.description}`}><strong>{i.target}</strong><small className="cell-sub">{i.description}</small></span> },
     { key: 'division', header: t('inc.col.division'), sortValue: i => i.source, render: i => i.source, secondary: true },
     { key: 'owner', header: t('inc.col.owner'), sortValue: i => i.assignee ?? '', render: i => (i.assignee ? i.assignee.split('@')[0] : <span className="emp-muted">{t('inc.panel.unassigned')}</span>), secondary: true },
     { key: 'status', header: t('inc.col.status'), sortValue: i => i.status, render: i => <StatusChip tone={isOpen(i) ? 'open' : 'ok'}>{t(isOpen(i) ? 'status.open' : 'status.resolved')}</StatusChip> },
-    { key: 'age', header: t('inc.col.age'), sortValue: i => new Date(i.timestamp).getTime(), render: i => formatAgo(i.timestamp, lang, now), align: 'right' },
+    { key: 'age', header: t('inc.col.age'), sortValue: i => new Date(i.timestamp).getTime(), render: i => formatAgo(i.timestamp, lang, now), align: 'right', low: true },
   ];
 
   const detail = selected && (

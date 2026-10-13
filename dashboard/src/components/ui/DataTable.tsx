@@ -12,6 +12,8 @@ export interface Column<T> {
   align?: 'left' | 'right';
   /** Hide this column in narrow containers. */
   secondary?: boolean;
+  /** Hide this column only in very narrow containers (phones); the page keeps the key columns without sideways scrolling. */
+  low?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -58,7 +60,7 @@ export default function DataTable<T>({ caption, columns, rows, rowKey, onRowClic
             {columns.map(column => {
               const active = sort?.key === column.key;
               return (
-                <th key={column.key} scope="col" data-align={column.align} data-secondary={column.secondary || undefined} aria-sort={active ? (sort?.dir === 'asc' ? 'ascending' : 'descending') : column.sortValue ? 'none' : undefined}>
+                <th key={column.key} scope="col" data-align={column.align} data-secondary={column.secondary || undefined} data-low={column.low || undefined} aria-sort={active ? (sort?.dir === 'asc' ? 'ascending' : 'descending') : column.sortValue ? 'none' : undefined}>
                   {column.sortValue
                     ? <button type="button" className="th-sort" onClick={() => toggle(column.key)}>{column.header}{active && (sort?.dir === 'asc' ? <ArrowUp size={12} aria-hidden="true" /> : <ArrowDown size={12} aria-hidden="true" />)}</button>
                     : column.header}
@@ -72,7 +74,7 @@ export default function DataTable<T>({ caption, columns, rows, rowKey, onRowClic
             const key = rowKey(row);
             return (
               <tr key={key} data-clickable={onRowClick ? '' : undefined} aria-selected={onRowClick ? selectedKey === key : undefined} tabIndex={onRowClick ? 0 : undefined} onClick={onRowClick ? () => onRowClick(row) : undefined} onKeyDown={event => onKey(event, row)}>
-                {columns.map(column => <td key={column.key} data-align={column.align} data-secondary={column.secondary || undefined}>{column.render(row)}</td>)}
+                {columns.map(column => <td key={column.key} data-align={column.align} data-secondary={column.secondary || undefined} data-low={column.low || undefined}>{column.render(row)}</td>)}
               </tr>
             );
           })}
