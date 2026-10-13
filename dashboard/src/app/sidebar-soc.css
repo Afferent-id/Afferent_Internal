@@ -1,0 +1,22 @@
+/* SOC sidebar: the dark navy of the earlier design, in both themes.
+   The sidebar re-declares the dark palette for everything inside it, so every shared sidebar rule keeps working. */
+.shell[data-role="soc"] .sb,
+:root[data-theme="dark"] .shell[data-role="soc"] .sb {
+  --sidebar-bg: #0b1a2f;
+  --sidebar-text: #c5d4e6;
+  --sidebar-hover: #162b4a;
+  --sidebar-active-bg: #1b3559;
+  --text-primary: #f2f6fc; --text-secondary: #c5d4e6; --text-muted: #9fb2c9;
+  --bg-surface: #13253f; --bg-elevated: #14284a; --bg-hover: #1a3157;
+  --border: #243d63; --border-hover: #3a5578; --border-control: #6482a8;
+  --accent: #7db3ff; --accent-strong: #a8cdff; --focus-ring: #8cc4ff; --on-accent: #06101e;
+  --pop-blue: #60a5fa;   --pop-blue-bg: rgba(96, 165, 250, .2);  --pop-blue-text: #dbeafe;
+  --pop-teal: #2dd4bf;   --pop-amber: #fbbf24;  --pop-violet: #a78bfa; --pop-pink: #f472b6;
+  --sev-ok: #86efac; --sev-critical: #ff8575;
+  color: var(--sidebar-text);
+  border-right-color: #1c3050;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .shell[data-role="soc"] .sb { --sidebar-bg: #07111f; --border: #1e3250; --bg-surface: #0f2038; --bg-elevated: #112440; }
+.shell[data-role="soc"] .sb .sb-link[aria-current="page"] { color: #ffffff; }
+.shell[data-role="soc"] .sb .sb-search { background: var(--bg-elevated); border-color: var(--border); }

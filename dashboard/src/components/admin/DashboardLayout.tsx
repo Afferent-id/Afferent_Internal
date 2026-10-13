@@ -23,6 +23,7 @@ import {
   Mail, Users, Brain, FileCheck, Globe, History, Moon, Sun, Menu, PanelLeft, Search, Settings, X
 } from 'lucide-react';
 import '@/app/dashboard.css';
+import '@/app/sidebar-soc.css';
 
 /** Sidebar tab definitions per role. Labels come from the message table so they follow the language setting. */
 type TabDef = { id: string; labelKey: MessageKey; icon: ReactNode };
@@ -136,7 +137,7 @@ export default function DashboardLayout({ role, activeTab, onTabChange, children
   ];
 
   return (
-    <div className="shell font-body" data-collapsed={collapsed} data-open={mobileOpen}>
+    <div className="shell font-body" data-role={role} data-collapsed={collapsed} data-open={mobileOpen}>
       <FirstRunTour role={role} />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} commands={commands} />
       <a className="skip-link" href="#content">{t('shell.skip')}</a>
