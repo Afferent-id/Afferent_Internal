@@ -18,6 +18,8 @@ const shared = {
   '@/components/ui/SeverityBadge': { default: stub },
   '@/components/ui/StateMessage': { default: stub },
   '@/components/ui/StatusChip': { default: stub },
+  '@/components/ui/LoadGate': { default: stub },
+  '@/lib/loadState': { loadState: (isLoading, error, hasData) => ({ status: hasData ? 'ready' : error ? 'error' : isLoading ? 'loading' : 'ready' }) },
   '@/components/ui/Toast': { useToast: () => ({ show() {} }) },
   '@/hooks/useNow': { useNow: () => Date.parse('2026-10-03T01:00:00Z') },
   '@/lib/relativeTime': { formatAgo: () => 'ago' },

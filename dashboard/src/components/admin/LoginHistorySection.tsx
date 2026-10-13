@@ -5,14 +5,17 @@ import { AdminLoginEvent } from '@/components/admin/types';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import SeverityBadge from '@/components/ui/SeverityBadge';
 import StateMessage from '@/components/ui/StateMessage';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 import { useI18n } from '@/i18n/I18nProvider';
 
 interface LoginHistorySectionProps {
   readOnly: boolean;
   loginHistory: AdminLoginEvent[] | { logs?: AdminLoginEvent[]; loginHistory?: AdminLoginEvent[] };
+  state?: LoadState;
 }
 
-export default function LoginHistorySection({ loginHistory }: LoginHistorySectionProps) {
+export default function LoginHistorySection({ loginHistory, state }: LoginHistorySectionProps) {
   const { t } = useI18n();
   const logs = Array.isArray(loginHistory) ? loginHistory : loginHistory?.logs || loginHistory?.loginHistory || [];
 
@@ -32,6 +35,7 @@ export default function LoginHistorySection({ loginHistory }: LoginHistorySectio
         <h3 id="login-history-title"><Server size={16} aria-hidden="true" /> {t('login.title')}</h3>
         <span className="emp-muted">{t('login.count', { n: logs.length })}</span>
       </div>
+      <LoadGate state={state} errorTitle="err.logins">
       <DataTable
         caption={t('login.title')}
         columns={columns}
@@ -39,6 +43,7 @@ export default function LoginHistorySection({ loginHistory }: LoginHistorySectio
         rowKey={log => String(log.id)}
         empty={<StateMessage variant="empty" title={t('login.empty.title')} why={t('login.empty.why')} />}
       />
+      </LoadGate>
     </section>
   );
 }

@@ -6,6 +6,8 @@ import DomainSecondOpinion from './DomainSecondOpinion';
 import Dialog from '@/components/ui/Dialog';
 import SeverityBadge from '@/components/ui/SeverityBadge';
 import StateMessage from '@/components/ui/StateMessage';
+import LoadGate from '@/components/ui/LoadGate';
+import { loadState } from '@/lib/loadState';
 import StatusChip from '@/components/ui/StatusChip';
 import { useToast } from '@/components/ui/Toast';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -62,6 +64,8 @@ export default function ProxyOperationsSection() {
   const [streamOnline, setStreamOnline] = useState(false);
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
+  const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [domain, setDomain] = useState('');
   const [action, setAction] = useState<'block' | 'allow'>('block');
   const [reason, setReason] = useState('');
@@ -84,8 +88,11 @@ export default function ProxyOperationsSection() {
       if (alertResponse.ok) setAlerts((await alertResponse.json()).alerts || []);
       if (verdictResponse.ok) setVerdicts((await verdictResponse.json()).verdicts || []);
       if (trafficResponse.ok) setTraffic((await trafficResponse.json()).events || []);
-      setMessage(!alertResponse.ok || !verdictResponse.ok || !trafficResponse.ok ? t('ops.fail.refresh') : '');
-    } catch { setMessage(t('ops.fail.refresh')); }
+      const allOk = alertResponse.ok && verdictResponse.ok && trafficResponse.ok;
+      if (alertResponse.ok || trafficResponse.ok) setLoaded(true);
+      setLoadFailed(!allOk);
+      setMessage(allOk ? '' : t('ops.fail.refresh'));
+    } catch { setLoadFailed(true); setMessage(t('ops.fail.refresh')); }
   }, [t]);
 
   useEffect(() => {
@@ -114,6 +121,8 @@ export default function ProxyOperationsSection() {
     stream.onerror = () => setStreamOnline(false);
     return () => stream.close();
   }, [load]);
+
+  const feedState = loadState(!loaded && !loadFailed, loadFailed, loaded, () => void load());
 
   // The reason starts empty on purpose: a pre-filled "Blocked by SOC" would satisfy the rule without saying anything.
   const openReview = (next: NonNullable<typeof review>, startingReason = '') => {
@@ -241,6 +250,7 @@ export default function ProxyOperationsSection() {
               </select>
             </label>
             <p className="debt-help">{t('ops.alerts.help')}</p>
+            <LoadGate state={feedState} errorTitle="err.alerts" compact>
             {visibleAlerts.length === 0
               ? <StateMessage variant="empty" title={t('ops.alerts.empty')} compact />
               : <div className="table-wrap"><table className="data-table">
@@ -266,10 +276,12 @@ export default function ProxyOperationsSection() {
                     ))}
                   </tbody>
                 </table></div>}
+            </LoadGate>
           </section>
 
           <section className="ops-block" aria-labelledby="ops-traffic">
             <div className="ops-head"><h3 id="ops-traffic">{t('ops.traffic.title')}</h3><span className="emp-muted">{t('ops.traffic.count', { n: traffic.length })}</span></div>
+            <LoadGate state={feedState} errorTitle="err.alerts" compact>
             {traffic.length === 0
               ? <StateMessage variant="empty" title={t('ops.traffic.empty')} compact />
               : <div className="table-wrap"><table className="data-table">
@@ -290,6 +302,7 @@ export default function ProxyOperationsSection() {
                     ))}
                   </tbody>
                 </table></div>}
+            </LoadGate>
             {traffic.length > TRAFFIC_ROWS && <p className="emp-muted">{t('ops.traffic.more', { n: TRAFFIC_ROWS })}</p>}
           </section>
         </div>

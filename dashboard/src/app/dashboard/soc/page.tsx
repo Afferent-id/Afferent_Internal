@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import DashboardLayout from '@/components/admin/DashboardLayout';
 import { useI18n } from '@/i18n/I18nProvider';
 import OverviewSection from '@/components/admin/OverviewSection';
@@ -8,6 +8,8 @@ import IncidentQueue from '@/components/admin/IncidentQueue';
 import ThreatCacheSection from '@/components/admin/ThreatCacheSection';
 import LoginHistorySection from '@/components/admin/LoginHistorySection';
 import { usePolling } from '@/hooks/usePolling';
+import { useFetchOnce } from '@/hooks/useFetchOnce';
+import { loadState } from '@/lib/loadState';
 import type { Incident, Stats, ThreatCacheEntry, AISummary, BehaviorScore, ComplianceSummary, AdminLoginEvent } from '@/components/admin/types';
 import AuditLogSection from '@/components/admin/AuditLogSection';
 import AIIntelligenceSection from '@/components/admin/AIIntelligenceSection';
@@ -19,21 +21,15 @@ export default function SOCDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [threatTypeFilter, setThreatTypeFilter] = useState('ALL');
   const [threatActionFilter, setThreatActionFilter] = useState('ALL');
-  const [loginHistory, setLoginHistory] = useState<AdminLoginEvent[]>([]);
 
   // Polling core data
   const { data: incidentData, hasUpdated: incidentUpdated, isLoading: incidentsLoading, error: incidentsError, refresh: refreshIncidents } = usePolling<{ incidents: Incident[]; stats: Stats }>('/api/incident', 3000);
-  const { data: cacheData, hasUpdated: cacheUpdated } = usePolling<{ cache: ThreatCacheEntry[] }>('/api/cache', 3000);
-  const { data: summaryData, hasUpdated: summaryUpdated, refresh: refreshSummary, error: summaryError } = usePolling<{ summaries: AISummary[] }>('/api/summary', 10000);
-  const { data: behaviorData, hasUpdated: behaviorUpdated, error: behaviorError } = usePolling<{ scores: BehaviorScore[] }>('/api/behavior', 10000);
+  const { data: cacheData, hasUpdated: cacheUpdated, isLoading: cacheLoading, error: cacheError, refresh: refreshCache } = usePolling<{ cache: ThreatCacheEntry[] }>('/api/cache', 3000);
+  const { data: summaryData, hasUpdated: summaryUpdated, refresh: refreshSummary, error: summaryError, isLoading: summaryLoading } = usePolling<{ summaries: AISummary[] }>('/api/summary', 10000);
+  const { data: behaviorData, hasUpdated: behaviorUpdated, error: behaviorError, isLoading: behaviorLoading, refresh: refreshBehavior } = usePolling<{ scores: BehaviorScore[] }>('/api/behavior', 10000);
   const { data: complianceData } = usePolling<ComplianceSummary>('/api/admin/compliance-summary', 3000);
 
-  useEffect(() => {
-    fetch('/api/admin/login-history')
-      .then(async r => (r.ok ? r.json() : null))
-      .then(data => data && setLoginHistory(Array.isArray(data) ? data : data.logs || []))
-      .catch(() => {});
-  }, []);
+  const { data: loginHistory, state: loginState } = useFetchOnce<AdminLoginEvent[]>('/api/admin/login-history', json => (Array.isArray(json) ? json : (json as { logs?: AdminLoginEvent[] })?.logs || []), []);
 
   const incidents = incidentData?.incidents || [];
   const activeIncidents = incidents.filter(inc => inc.status !== 'closed');
@@ -56,6 +52,9 @@ export default function SOCDashboard() {
             scores={scores}
             cache={cache}
             complianceData={complianceData}
+            incidentsState={loadState(incidentsLoading, incidentsError, incidentData !== null, refreshIncidents)}
+            scoresState={loadState(behaviorLoading, behaviorError, behaviorData !== null, refreshBehavior)}
+            summariesState={loadState(summaryLoading, summaryError, summaryData !== null, refreshSummary)}
             incidentUpdated={incidentUpdated}
             cacheUpdated={cacheUpdated}
             summaryUpdated={summaryUpdated}
@@ -69,6 +68,7 @@ export default function SOCDashboard() {
           <ProxyOperationsSection />
           <ThreatCacheSection
             readOnly={false}
+            state={loadState(cacheLoading, cacheError, cacheData !== null, refreshCache)}
             cacheData={cache}
             threatTypeFilter={threatTypeFilter}
             threatActionFilter={threatActionFilter}
@@ -76,7 +76,7 @@ export default function SOCDashboard() {
             onThreatActionFilterChange={setThreatActionFilter}
           />
           <div style={{ marginTop: '24px' }}>
-            <LoginHistorySection readOnly={false} loginHistory={loginHistory} />
+            <LoginHistorySection readOnly={false} loginHistory={loginHistory} state={loginState} />
           </div>
         </>
       )}

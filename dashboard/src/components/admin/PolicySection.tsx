@@ -5,6 +5,8 @@ import { PolicyDecision } from '@/components/admin/types';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import Field from '@/components/ui/Field';
 import StateMessage from '@/components/ui/StateMessage';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 import StatusChip, { type StatusTone } from '@/components/ui/StatusChip';
 import { useI18n } from '@/i18n/I18nProvider';
 import { useNow } from '@/hooks/useNow';
@@ -14,12 +16,13 @@ import type { MessageKey } from '@/i18n/messages';
 interface PolicySectionProps {
   readOnly: boolean;
   decisions: PolicyDecision[];
+  state?: LoadState;
 }
 
 const TONE: Record<string, StatusTone> = { block: 'bad', warning: 'warn', allow: 'ok', notify_soc: 'open' };
 const ACTIONS = ['block', 'warning', 'allow', 'notify_soc'] as const;
 
-export default function PolicySection({ readOnly, decisions }: PolicySectionProps) {
+export default function PolicySection({ readOnly, decisions, state }: PolicySectionProps) {
   const { t, lang } = useI18n();
   const now = useNow();
   const safe = Array.isArray(decisions) ? decisions : [];
@@ -93,7 +96,9 @@ export default function PolicySection({ readOnly, decisions }: PolicySectionProp
             <span key={action} className="strip-static"><b>{safe.filter(d => (d.finalAction || '').toLowerCase() === action).length}</b> {t(`pol.sum.${action}` as MessageKey)}</span>
           ))}
         </div>
-        <DataTable caption={t('pol.title')} columns={columns} rows={safe} rowKey={d => d.id} empty={<StateMessage variant="empty" title={t('pol.empty.title')} why={t('pol.empty.why')} />} />
+        <LoadGate state={state} errorTitle="err.policy">
+          <DataTable caption={t('pol.title')} columns={columns} rows={safe} rowKey={d => d.id} empty={<StateMessage variant="empty" title={t('pol.empty.title')} why={t('pol.empty.why')} />} />
+        </LoadGate>
       </section>
     </div>
   );

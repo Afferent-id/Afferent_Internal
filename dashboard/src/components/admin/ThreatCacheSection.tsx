@@ -9,6 +9,8 @@ import Dialog from '@/components/ui/Dialog';
 import Field from '@/components/ui/Field';
 import FilterBar from '@/components/ui/FilterBar';
 import StateMessage from '@/components/ui/StateMessage';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 import StatusChip, { type StatusTone } from '@/components/ui/StatusChip';
 import { useToast } from '@/components/ui/Toast';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -20,6 +22,7 @@ import type { MessageKey } from '@/i18n/messages';
 interface ThreatCacheSectionProps {
   readOnly: boolean;
   cacheData: ThreatCacheEntry[];
+  state?: LoadState;
   threatTypeFilter: string;
   threatActionFilter: string;
   onThreatTypeFilterChange: (val: string) => void;
@@ -32,7 +35,7 @@ const ACTION_TONE: Record<string, StatusTone> = { block: 'bad', warning: 'warn',
 
 type Action = 'block' | 'allow' | 'purge';
 
-export default function ThreatCacheSection({ readOnly, cacheData, threatTypeFilter, threatActionFilter, onThreatTypeFilterChange, onThreatActionFilterChange }: ThreatCacheSectionProps) {
+export default function ThreatCacheSection({ readOnly, state, cacheData, threatTypeFilter, threatActionFilter, onThreatTypeFilterChange, onThreatActionFilterChange }: ThreatCacheSectionProps) {
   const { t, lang } = useI18n();
   const toast = useToast();
   const now = useNow();
@@ -108,6 +111,7 @@ export default function ThreatCacheSection({ readOnly, cacheData, threatTypeFilt
     <div className="ops-page">
       <section className="ops-block" aria-labelledby="threat-chart-title">
         <div className="ops-head"><h3 id="threat-chart-title">{t('threat.chart.title')}</h3></div>
+        <LoadGate state={state} errorTitle="err.threats" lines={3}>
         <div className="ops-card" style={{ height: 220 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -119,6 +123,7 @@ export default function ThreatCacheSection({ readOnly, cacheData, threatTypeFilt
             </BarChart>
           </ResponsiveContainer>
         </div>
+        </LoadGate>
       </section>
 
       <section className="ops-block" aria-labelledby="threat-feed-title">
@@ -135,7 +140,9 @@ export default function ThreatCacheSection({ readOnly, cacheData, threatTypeFilt
           onClear={() => { onThreatTypeFilterChange('ALL'); onThreatActionFilterChange('ALL'); }}
         />
         {!readOnly && <div><button type="button" className="btn btn-primary" onClick={() => { setFormError(''); setAdding(true); }}><Plus size={14} aria-hidden="true" /> {t('threat.add')}</button></div>}
-        <DataTable caption={t('threat.title')} columns={columns} rows={filtered} rowKey={e => e.id} empty={<StateMessage variant="empty" title={t('threat.empty.title')} why={t('threat.empty.why')} />} />
+        <LoadGate state={state} errorTitle="err.threats">
+          <DataTable caption={t('threat.title')} columns={columns} rows={filtered} rowKey={e => e.id} empty={<StateMessage variant="empty" title={t('threat.empty.title')} why={t('threat.empty.why')} />} />
+        </LoadGate>
       </section>
 
       <Dialog open={adding && !readOnly} onClose={() => setAdding(false)} busy={busy !== null} title={t('threat.dialog.title')} description={t('threat.dialog.desc')}

@@ -259,7 +259,7 @@ export const AIIntelligenceSection: React.FC<AIIntelligenceSectionProps> = ({ ro
             <span className="emp-muted">{t('ai.count', { n: users.length })}</span>
             <button type="button" className="btn" onClick={refresh} disabled={heatmapLoading}><RefreshCw size={14} aria-hidden="true" /> {t('ai.refresh')}</button>
           </div>
-          {heatmapLoading ? <StateMessage variant="loading" /> : (
+          {heatmapLoading ? <StateMessage variant="loading" /> : error && users.length === 0 ? null : (
             <div className="incident-split" data-wide={wide}>
               <DataTable caption={t('ai.title')} columns={columns} rows={users} rowKey={u => u.email} selectedKey={selected} onRowClick={u => void selectUser(u.email)} empty={<StateMessage variant="empty" title={t('ai.empty.title')} why={t('ai.empty.why')} />} />
               {wide

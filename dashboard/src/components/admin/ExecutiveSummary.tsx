@@ -7,6 +7,8 @@ import StateMessage from '@/components/ui/StateMessage';
 import StatusChip from '@/components/ui/StatusChip';
 import { useI18n } from '@/i18n/I18nProvider';
 import { usePolling } from '@/hooks/usePolling';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 import type { BehaviorScore, ComplianceSummary, GoPhishCampaign, Incident } from '@/components/admin/types';
 
 const COMPLIANCE_GOAL = 80;
@@ -17,6 +19,8 @@ interface ExecutiveSummaryProps {
   scores: BehaviorScore[];
   compliance: ComplianceSummary | null | undefined;
   campaigns: GoPhishCampaign[];
+  /** Incident and score feeds together; an error here must not read as "nothing needs attention". */
+  state?: LoadState;
 }
 
 interface WeekPoint { week_start: string; avg_score: number; people: number; high_risk: number; open_incidents: number; reports: number; clicks: number }
@@ -47,7 +51,7 @@ const isHighRisk = (score: BehaviorScore) => ['high', 'critical'].includes((scor
  * One screen for an executive: how bad is it, what needs attention, how ready are we.
  * Built only from data that exists today. Trends need history, which is not recorded yet.
  */
-export default function ExecutiveSummary({ incidents, scores, compliance, campaigns }: ExecutiveSummaryProps) {
+export default function ExecutiveSummary({ incidents, scores, compliance, campaigns, state }: ExecutiveSummaryProps) {
   const { t } = useI18n();
   const { data: trendData } = usePolling<{ weeks: WeekPoint[] }>('/api/admin/trends?weeks=8', 60000);
   const weeks = trendData?.weeks ?? [];
@@ -102,9 +106,11 @@ export default function ExecutiveSummary({ incidents, scores, compliance, campai
       <div className="exec-grid">
         <div className="exec-card">
           <h3>{t('exec.attention')}</h3>
-          {attention.length === 0
-            ? <StateMessage variant="empty" title={t('exec.attention.empty')} compact />
-            : <ul className="exec-attention">{attention.map(item => <li key={item.key}>{item.node}</li>)}</ul>}
+          <LoadGate state={state} errorTitle="err.incidents" compact lines={2}>
+            {attention.length === 0
+              ? <StateMessage variant="empty" title={t('exec.attention.empty')} compact />
+              : <ul className="exec-attention">{attention.map(item => <li key={item.key}>{item.node}</li>)}</ul>}
+          </LoadGate>
         </div>
         <div className="exec-card">
           <h3>{t('exec.compliance')}</h3>

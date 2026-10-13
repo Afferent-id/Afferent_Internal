@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import DashboardLayout from '@/components/admin/DashboardLayout';
 import OverviewSection from '@/components/admin/OverviewSection';
 import IncidentQueue from '@/components/admin/IncidentQueue';
@@ -12,41 +12,33 @@ import PolicySection from '@/components/admin/PolicySection';
 import GophishCampaignSection from '@/components/admin/GophishCampaignSection';
 import EmployeeRosterSection from '@/components/admin/EmployeeRosterSection';
 import { usePolling } from '@/hooks/usePolling';
+import { useFetchOnce } from '@/hooks/useFetchOnce';
+import { loadState } from '@/lib/loadState';
 import type { Incident, Stats, ThreatCacheEntry, AISummary, BehaviorScore, PolicyDecision, ComplianceSummary, GoPhishCampaign, LeaderboardResponse, EmployeeAccount, Division } from '@/components/admin/types';
 
 import AuditLogSection from '@/components/admin/AuditLogSection';
 import AIIntelligenceSection from '@/components/admin/AIIntelligenceSection';
 
+const pickCampaigns = (json: unknown): GoPhishCampaign[] => (Array.isArray(json) ? json : (json as { campaigns?: GoPhishCampaign[] })?.campaigns || []);
+const pickEmployees = (json: unknown): EmployeeAccount[] => (Array.isArray(json) ? json : (json as { employees?: EmployeeAccount[] })?.employees || []);
+const pickDivisions = (json: unknown): Division[] => (Array.isArray(json) ? json : (json as { divisions?: Division[] })?.divisions || []);
+
 export default function CISODashboard() {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('overview');
-  const [campaigns, setCampaigns] = useState<GoPhishCampaign[]>([]);
-  const [employees, setEmployees] = useState<EmployeeAccount[]>([]);
-  const [divisions, setDivisions] = useState<Division[]>([]);
 
   // Polling core data
   const { data: incidentData, hasUpdated: incidentUpdated, isLoading: incidentsLoading, error: incidentsError, refresh: refreshIncidents } = usePolling<{ incidents: Incident[]; stats: Stats }>('/api/incident', 3000);
-  const { data: cacheData, hasUpdated: cacheUpdated } = usePolling<{ cache: ThreatCacheEntry[] }>('/api/cache', 3000);
-  const { data: summaryData, hasUpdated: summaryUpdated } = usePolling<{ summaries: AISummary[] }>('/api/summary', 3000);
-  const { data: behaviorData, hasUpdated: behaviorUpdated } = usePolling<{ scores: BehaviorScore[] }>('/api/behavior', 3000);
-  const { data: policyData } = usePolling<{ decisions: PolicyDecision[] }>('/api/policy', 3000);
+  const { data: cacheData, hasUpdated: cacheUpdated, isLoading: cacheLoading, error: cacheError, refresh: refreshCache } = usePolling<{ cache: ThreatCacheEntry[] }>('/api/cache', 3000);
+  const { data: summaryData, hasUpdated: summaryUpdated, isLoading: summaryLoading, error: summaryError, refresh: refreshSummary } = usePolling<{ summaries: AISummary[] }>('/api/summary', 3000);
+  const { data: behaviorData, hasUpdated: behaviorUpdated, isLoading: behaviorLoading, error: behaviorError, refresh: refreshBehavior } = usePolling<{ scores: BehaviorScore[] }>('/api/behavior', 3000);
+  const { data: policyData, isLoading: policyLoading, error: policyError, refresh: refreshPolicy } = usePolling<{ decisions: PolicyDecision[] }>('/api/policy', 3000);
   const { data: complianceData } = usePolling<ComplianceSummary>('/api/admin/compliance-summary', 3000);
-  const { data: leaderboardData } = usePolling<LeaderboardResponse>('/api/admin/leaderboard', 3000);
+  const { data: leaderboardData, isLoading: leaderboardLoading, error: leaderboardError, refresh: refreshLeaderboard } = usePolling<LeaderboardResponse>('/api/admin/leaderboard', 3000);
 
-  useEffect(() => {
-    fetch('/api/admin/gophish/campaigns')
-      .then(async r => (r.ok ? r.json() : null))
-      .then(data => data && setCampaigns(Array.isArray(data) ? data : data?.campaigns || []))
-      .catch(() => {});
-    fetch('/api/admin/employees')
-      .then(async r => (r.ok ? r.json() : null))
-      .then(data => data && setEmployees(Array.isArray(data) ? data : data?.employees || []))
-      .catch(() => {});
-    fetch('/api/admin/divisions')
-      .then(async r => (r.ok ? r.json() : null))
-      .then(data => data && setDivisions(Array.isArray(data) ? data : data?.divisions || []))
-      .catch(() => {});
-  }, []);
+  const { data: campaigns, state: campaignsState } = useFetchOnce<GoPhishCampaign[]>('/api/admin/gophish/campaigns', pickCampaigns, []);
+  const { data: employees, state: rosterState } = useFetchOnce<EmployeeAccount[]>('/api/admin/employees', pickEmployees, []);
+  const { data: divisions } = useFetchOnce<Division[]>('/api/admin/divisions', pickDivisions, []);
 
   const incidents = incidentData?.incidents || [];
   const activeIncidents = incidents.filter(inc => inc.status !== 'closed');
@@ -59,7 +51,8 @@ export default function CISODashboard() {
     <DashboardLayout role="ciso" activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === 'overview' && (
         <>
-          <ExecutiveSummary incidents={incidents} scores={scores} compliance={complianceData} campaigns={campaigns} />
+          <ExecutiveSummary incidents={incidents} scores={scores} compliance={complianceData} campaigns={campaigns}
+            state={loadState(incidentsLoading || behaviorLoading, (incidentsError && !incidentData) || (behaviorError && !behaviorData), incidentData !== null && behaviorData !== null, () => { refreshIncidents(); refreshBehavior(); })} />
           <IncidentQueue incidents={incidents} canResolve={false} onChanged={refreshIncidents} loading={incidentsLoading} error={Boolean(incidentsError) && !incidentData} />
           <details className="exec-more">
             <summary>{t('exec.more')}<small>{t('exec.more.hint')}</small></summary>
@@ -72,6 +65,9 @@ export default function CISODashboard() {
                 scores={scores}
                 cache={cache}
                 complianceData={complianceData}
+                incidentsState={loadState(incidentsLoading, incidentsError, incidentData !== null, refreshIncidents)}
+                scoresState={loadState(behaviorLoading, behaviorError, behaviorData !== null, refreshBehavior)}
+                summariesState={loadState(summaryLoading, summaryError, summaryData !== null, refreshSummary)}
                 incidentUpdated={incidentUpdated}
                 cacheUpdated={cacheUpdated}
                 summaryUpdated={summaryUpdated}
@@ -85,6 +81,7 @@ export default function CISODashboard() {
       {activeTab === 'threats' && (
         <ThreatCacheSection
           readOnly={true}
+          state={loadState(cacheLoading, cacheError, cacheData !== null, refreshCache)}
           cacheData={cache}
           threatTypeFilter="ALL"
           threatActionFilter="ALL"
@@ -97,6 +94,7 @@ export default function CISODashboard() {
         <LeaderboardSection
           readOnly={true}
           leaderboardData={leaderboardData}
+          state={loadState(leaderboardLoading, leaderboardError, leaderboardData !== null, refreshLeaderboard)}
           divisiFilter="ALL"
           badgeFilter="ALL"
           onDivisiFilterChange={() => {}}
@@ -105,13 +103,14 @@ export default function CISODashboard() {
       )}
 
       {activeTab === 'policy' && (
-        <PolicySection readOnly={true} decisions={decisions} />
+        <PolicySection readOnly={true} decisions={decisions} state={loadState(policyLoading, policyError, policyData !== null, refreshPolicy)} />
       )}
 
       {activeTab === 'gophish' && (
         <GophishCampaignSection
           readOnly={true}
           campaigns={campaigns}
+          campaignsState={campaignsState}
           employees={employees}
           divisions={divisions}
           resources={null}
@@ -130,6 +129,7 @@ export default function CISODashboard() {
       {activeTab === 'employees' && (
         <EmployeeRosterSection
           readOnly={true}
+          state={rosterState}
           employees={employees}
           divisions={divisions}
           onOpenAddEmployee={() => {}}

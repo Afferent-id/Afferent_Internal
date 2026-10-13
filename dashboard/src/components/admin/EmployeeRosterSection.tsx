@@ -6,6 +6,8 @@ import type { Division, EmployeeAccount } from '@/components/admin/types';
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import FilterBar from '@/components/ui/FilterBar';
 import StateMessage from '@/components/ui/StateMessage';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 import StatusChip from '@/components/ui/StatusChip';
 import { useI18n } from '@/i18n/I18nProvider';
 
@@ -13,12 +15,13 @@ interface EmployeeRosterSectionProps {
   readOnly: boolean;
   employees: EmployeeAccount[];
   divisions: Division[];
+  state?: LoadState;
   onOpenAddEmployee: (employee?: EmployeeAccount) => void;
   onOpenEditEmployee: (emp: EmployeeAccount) => void;
   onOpenAddDivision: () => void;
 }
 
-export default function EmployeeRosterSection({ readOnly, employees, divisions, onOpenAddEmployee, onOpenEditEmployee, onOpenAddDivision }: EmployeeRosterSectionProps) {
+export default function EmployeeRosterSection({ readOnly, state, employees, divisions, onOpenAddEmployee, onOpenEditEmployee, onOpenAddDivision }: EmployeeRosterSectionProps) {
   const { t } = useI18n();
   const [division, setDivision] = useState('ALL');
   const [query, setQuery] = useState('');
@@ -64,7 +67,9 @@ export default function EmployeeRosterSection({ readOnly, employees, divisions, 
         activeCount={(division !== 'ALL' ? 1 : 0) + (query ? 1 : 0)}
         onClear={() => { setDivision('ALL'); setQuery(''); }}
       />
-      <DataTable caption={t('ros.title')} columns={columns} rows={rows} rowKey={e => e.email} empty={<StateMessage variant="empty" title={t('ros.empty.title')} why={t('ros.empty.why')} />} />
+      <LoadGate state={state} errorTitle="err.accounts">
+        <DataTable caption={t('ros.title')} columns={columns} rows={rows} rowKey={e => e.email} empty={<StateMessage variant="empty" title={t('ros.empty.title')} why={t('ros.empty.why')} />} />
+      </LoadGate>
     </section>
   );
 }

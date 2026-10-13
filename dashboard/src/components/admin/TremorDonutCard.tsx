@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useI18n } from '@/i18n/I18nProvider';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 
 export interface DonutDataItem {
   name: string;
@@ -21,6 +23,7 @@ export interface TremorDonutCardProps {
   totalLabel?: string;
   unit?: string;
   className?: string;
+  state?: LoadState;
 }
 
 function Marker({ color, shape = 'circle' }: { color: string; shape?: DonutDataItem['shape'] }) {
@@ -29,7 +32,7 @@ function Marker({ color, shape = 'circle' }: { color: string; shape?: DonutDataI
 }
 
 /** A donut with a legend that carries the numbers, so no value is shown by colour alone. */
-export function TremorDonutCard({ title, description, data, totalLabel, unit, className = '' }: TremorDonutCardProps) {
+export function TremorDonutCard({ title, description, data, totalLabel, unit, className = '', state }: TremorDonutCardProps) {
   const { t } = useI18n();
   const [active, setActive] = useState<number | null>(null);
   const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -41,6 +44,7 @@ export function TremorDonutCard({ title, description, data, totalLabel, unit, cl
         <h3>{title}</h3>
         {description && <p className="emp-muted">{description}</p>}
       </div>
+      <LoadGate state={state} errorTitle="err.incidents" lines={3}>
       {total === 0 ? <p className="emp-muted">{t('ov.donut.empty')}</p> : (
         <div className="donut-row">
           <div className="donut-chart" aria-hidden="true">
@@ -66,6 +70,7 @@ export function TremorDonutCard({ title, description, data, totalLabel, unit, cl
           </ul>
         </div>
       )}
+      </LoadGate>
     </section>
   );
 }

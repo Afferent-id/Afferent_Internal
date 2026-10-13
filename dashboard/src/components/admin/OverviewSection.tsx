@@ -11,6 +11,8 @@ import { useI18n } from '@/i18n/I18nProvider';
 import { useNow } from '@/hooks/useNow';
 import { formatAgo } from '@/lib/relativeTime';
 import type { MessageKey } from '@/i18n/messages';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 
 interface OverviewSectionProps {
   readOnly: boolean;
@@ -24,6 +26,10 @@ interface OverviewSectionProps {
   cacheUpdated: boolean;
   summaryUpdated: boolean;
   behaviorUpdated: boolean;
+  /** Loading and error state of each feed, so a failure is never shown as "no data". */
+  incidentsState?: LoadState;
+  scoresState?: LoadState;
+  summariesState?: LoadState;
   onSelectIncident?: (inc: Incident) => void;
   onRefreshSummary?: () => void;
 }
@@ -38,7 +44,7 @@ function BarLabel({ x, y, width, height, value, t }: { x?: number | string; y?: 
 const nameOf = (u: BehaviorScore, fallback: string) =>
   u.userName || (u.email ? u.email.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : fallback);
 
-export default function OverviewSection({ stats, incidents, summaries, scores, cache, onRefreshSummary }: OverviewSectionProps) {
+export default function OverviewSection({ stats, incidents, summaries, scores, cache, onRefreshSummary, incidentsState, scoresState, summariesState }: OverviewSectionProps) {
   const { t, lang } = useI18n();
   const now = useNow();
 
@@ -97,6 +103,7 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
       <div className="exec-grid">
         <section className="exec-card" aria-labelledby="ov-div">
           <div><h3 id="ov-div">{t('ov.div.title')}</h3><p className="emp-muted">{t('ov.div.desc')}</p></div>
+          <LoadGate state={scoresState} errorTitle="err.scores" lines={4}>
           <div style={{ height: Math.max(180, divisionData.length * 34 + 40) }}>
             {divisionData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -113,8 +120,9 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
               </ResponsiveContainer>
             ) : <p className="emp-muted">{t('ov.div.empty')}</p>}
           </div>
+          </LoadGate>
         </section>
-        <TremorDonutCard title={t('ov.sev.title')} description={t('ov.sev.desc')} data={donut} totalLabel={t('ov.sev.total')} />
+        <TremorDonutCard title={t('ov.sev.title')} description={t('ov.sev.desc')} data={donut} totalLabel={t('ov.sev.total')} state={incidentsState} />
       </div>
 
       <div className="exec-grid">
@@ -123,6 +131,7 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
             <h3 id="ov-risk">{t('ov.risk.title')}</h3>
             {onRefreshSummary && <button type="button" className="btn" onClick={onRefreshSummary}><RefreshCw size={14} aria-hidden="true" /> {t('ov.risk.refresh')}</button>}
           </div>
+          <LoadGate state={summariesState} errorTitle="err.summaries" lines={3}>
           {summaries.length > 0 ? (
             <ul className="emp-list">
               {summaries.slice(0, 3).map(s => (
@@ -141,6 +150,7 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
               ))}
             </ul>
           ) : <p className="emp-muted">{t('ov.risk.empty')}</p>}
+          </LoadGate>
         </section>
 
         <section className="exec-card" aria-labelledby="ov-people">
@@ -150,10 +160,12 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
             <span className="strip-static"><b>{moderate}</b> {t('ov.people.moderate')}</span>
             <span className="strip-static"><b>{atRisk}</b> {t('ov.people.atrisk')}</span>
           </div>
+          <LoadGate state={scoresState} errorTitle="err.scores" lines={3}>
           <h4 style={{ fontSize: 14, fontWeight: 600 }}>{t('ov.people.top')}</h4>
           {best.length ? <ul className="emp-list">{best.map((u, i) => person(u, i, <span className="emp-list-time">{t('ov.people.weeks', { n: u.streak || 0 })}</span>))}</ul> : <p className="emp-muted">{t('ov.people.top.empty')}</p>}
           <h4 style={{ fontSize: 14, fontWeight: 600 }}>{t('ov.people.low')}</h4>
           {worst.length ? <ul className="emp-list">{worst.map((u, i) => person(u, i, <span className="emp-list-time">{u.risk || ''}</span>))}</ul> : <p className="emp-muted">{t('ov.people.low.empty')}</p>}
+          </LoadGate>
           <p className="inline-note">{t('ov.note')}</p>
         </section>
       </div>

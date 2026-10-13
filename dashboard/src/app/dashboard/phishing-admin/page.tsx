@@ -15,6 +15,7 @@ import EmployeeRosterSection from '@/components/admin/EmployeeRosterSection';
 import LeaderboardSection from '@/components/admin/LeaderboardSection';
 import AIIntelligenceSection from '@/components/admin/AIIntelligenceSection';
 import { usePolling } from '@/hooks/usePolling';
+import { loadState } from '@/lib/loadState';
 import type { Division, EmployeeAccount, GoPhishCampaign, GoPhishResource, LeaderboardResponse } from '@/components/admin/types';
 import { Download } from 'lucide-react';
 
@@ -59,7 +60,10 @@ export default function PhishingAdminDashboard() {
   const [badgeFilter, setBadgeFilter] = useState('ALL');
 
   // Polling
-  const { data: leaderboardData } = usePolling<LeaderboardResponse>('/api/admin/leaderboard', 3000);
+  const { data: leaderboardData, isLoading: leaderboardLoading, error: leaderboardError, refresh: refreshLeaderboard } = usePolling<LeaderboardResponse>('/api/admin/leaderboard', 3000);
+  const [campaignsReady, setCampaignsReady] = useState(false);
+  const [rosterReady, setRosterReady] = useState(false);
+  const [rosterFailed, setRosterFailed] = useState(false);
 
   // ─── Modal States ──────────────────────────────────────────────────────────
   // 1. Launch Simulation Modal
@@ -119,6 +123,7 @@ export default function PhishingAdminDashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(serverMessage(data, t, 'adm3.err.campaigns'));
       setCampaigns(Array.isArray(data) ? data : data?.campaigns || []);
+      setCampaignsReady(true);
       setCampaignError('');
     } catch (err) {
       setCampaignError(errorMessage(err));
@@ -149,9 +154,11 @@ export default function PhishingAdminDashboard() {
       if (res.ok) {
         const data = await res.json();
         setEmployees(Array.isArray(data) ? data : data?.employees || []);
-      }
+        setRosterReady(true); setRosterFailed(false);
+      } else setRosterFailed(true);
     } catch (err) {
       console.error('Error loading employees:', err);
+      setRosterFailed(true);
     }
   };
 
@@ -585,6 +592,7 @@ export default function PhishingAdminDashboard() {
         <GophishCampaignSection
           readOnly={false}
           campaigns={Array.isArray(campaigns) ? campaigns : []}
+          campaignsState={loadState(!campaignsReady && !campaignError, campaignError, campaignsReady, () => void loadCampaigns())}
           employees={Array.isArray(employees) ? employees : []}
           divisions={Array.isArray(divisions) ? divisions : []}
           resources={resources}
@@ -612,6 +620,7 @@ export default function PhishingAdminDashboard() {
       {activeTab === 'employees' && (
         <EmployeeRosterSection
           readOnly={false}
+          state={loadState(!rosterReady && !rosterFailed, rosterFailed, rosterReady, () => { setRosterFailed(false); void loadEmployees(); })}
           employees={Array.isArray(employees) ? employees : []}
           divisions={Array.isArray(divisions) ? divisions : []}
           onOpenAddEmployee={handleOpenAddEmployee}
@@ -624,6 +633,7 @@ export default function PhishingAdminDashboard() {
         <LeaderboardSection
           readOnly={false}
           leaderboardData={leaderboardData}
+          state={loadState(leaderboardLoading, leaderboardError, leaderboardData !== null, refreshLeaderboard)}
           divisiFilter={divisiFilter}
           badgeFilter={badgeFilter}
           onDivisiFilterChange={setDivisiFilter}

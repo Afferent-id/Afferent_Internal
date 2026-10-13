@@ -6,12 +6,15 @@ import { LeaderboardResponse, type IndividualLeaderboard, type DivisionLeaderboa
 import DataTable, { type Column } from '@/components/ui/DataTable';
 import FilterBar from '@/components/ui/FilterBar';
 import StateMessage from '@/components/ui/StateMessage';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 import StatusChip, { type StatusTone } from '@/components/ui/StatusChip';
 import { useI18n } from '@/i18n/I18nProvider';
 
 interface LeaderboardSectionProps {
   readOnly: boolean;
   leaderboardData: LeaderboardResponse | null;
+  state?: LoadState;
   divisiFilter?: string;
   badgeFilter?: string;
   onDivisiFilterChange?: (val: string) => void;
@@ -28,7 +31,7 @@ function badgeTone(badge: string): StatusTone {
 }
 
 /** Filters are local: they work for read-only roles too, because looking at a list differently changes no data. */
-export default function LeaderboardSection({ leaderboardData, divisiFilter = 'ALL', badgeFilter = 'ALL', onDivisiFilterChange, onBadgeFilterChange }: LeaderboardSectionProps) {
+export default function LeaderboardSection({ leaderboardData, state, divisiFilter = 'ALL', badgeFilter = 'ALL', onDivisiFilterChange, onBadgeFilterChange }: LeaderboardSectionProps) {
   const { t } = useI18n();
   const [division, setDivision] = useState(divisiFilter || 'ALL');
   const [badge, setBadge] = useState(badgeFilter || 'ALL');
@@ -83,9 +86,11 @@ export default function LeaderboardSection({ leaderboardData, divisiFilter = 'AL
         activeCount={activeCount}
         onClear={() => { changeDivision('ALL'); changeBadge('ALL'); setQuery(''); }}
       />
-      {view === 'people'
-        ? <DataTable caption={t('lb.title')} columns={peopleColumns} rows={people} rowKey={row => row.email} empty={empty} />
-        : <DataTable caption={t('lb.title')} columns={divisionColumns} rows={divisionRows} rowKey={row => row.divisi} empty={empty} />}
+      <LoadGate state={state} errorTitle="err.leaderboard">
+        {view === 'people'
+          ? <DataTable caption={t('lb.title')} columns={peopleColumns} rows={people} rowKey={row => row.email} empty={empty} />
+          : <DataTable caption={t('lb.title')} columns={divisionColumns} rows={divisionRows} rowKey={row => row.divisi} empty={empty} />}
+      </LoadGate>
     </section>
   );
 }

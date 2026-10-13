@@ -7,6 +7,8 @@ import DataTable, { type Column } from '@/components/ui/DataTable';
 import Dialog from '@/components/ui/Dialog';
 import KpiCard from '@/components/ui/KpiCard';
 import StateMessage from '@/components/ui/StateMessage';
+import LoadGate from '@/components/ui/LoadGate';
+import type { LoadState } from '@/lib/loadState';
 import StatusChip from '@/components/ui/StatusChip';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatWIB } from './types';
@@ -16,6 +18,7 @@ type Resource = GoPhishResource['templates'][number] | GoPhishResource['pages'][
 interface Props {
   readOnly: boolean;
   campaigns: GoPhishCampaign[];
+  campaignsState?: LoadState;
   employees: EmployeeAccount[];
   divisions: Division[];
   resources: GoPhishResource | null;
@@ -159,7 +162,9 @@ export default function GophishCampaignSection(props: Props) {
 
       <section className="ops-block" aria-labelledby="cmpg-s3">
         <div className="ops-intro"><div><h3 id="cmpg-s3" style={{ fontSize: 16, fontWeight: 600 }}>{t('cmpg.monitor')}</h3></div><span className="emp-muted">{t('cmpg.count', { n: campaigns.length })}</span></div>
+        <LoadGate state={props.campaignsState} errorTitle="err.campaigns">
         <DataTable caption={t('cmpg.monitor')} columns={columns} rows={campaigns} rowKey={c => `${c.source || 'gophish'}:${c.id}`} density="comfortable" empty={<StateMessage variant="empty" title={t('cmpg.empty.title')} why={t('cmpg.empty.why')} />} />
+        </LoadGate>
       </section>
 
       <Dialog open={detail !== null} onClose={() => setDetail(null)} size="lg" title={detail?.name ?? t('cmpg.detail.title')} description={detail ? `${statusLabel(detail.status)} · ${formatWIB(detail.created_date)}` : undefined}>
