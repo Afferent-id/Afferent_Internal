@@ -3,7 +3,9 @@ export type TrafficView = (typeof TRAFFIC_VIEWS)[number];
 
 /** The sub-tab named in a URL query string (`?view=policies`); the default is Live traffic. Unknown values are ignored. */
 export function viewFromSearch(search: string): TrafficView {
-  const value = new URLSearchParams(search).get('view');
+  const raw = new URLSearchParams(search).get('view');
+  // `signins` is the readable alias of the tab that used to be called Audit log; `audit` stays the canonical value so old links keep working.
+  const value = raw === 'signins' ? 'audit' : raw;
   return (TRAFFIC_VIEWS as readonly string[]).includes(value ?? '') ? (value as TrafficView) : 'live';
 }
 
