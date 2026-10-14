@@ -507,3 +507,8 @@ a.kpi:hover { border-color: var(--border-control); }
   .ops-page .table-wrap .data-table :is(th, td):last-child { position: sticky; right: 0; background: var(--bg-surface); box-shadow: -10px 0 8px -8px rgb(0 0 0 / 18%); }
   .ops-page .table-wrap .data-table th:last-child { background: var(--bg-elevated); }
 }
+
+/* A fade on the cut edge of the tab row shows that it scrolls; nothing is drawn when all tabs fit. */
+.tabs[data-more="right"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+.tabs[data-more="left"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
+.tabs[data-more="left right"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }

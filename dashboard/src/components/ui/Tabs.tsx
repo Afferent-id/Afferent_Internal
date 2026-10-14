@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, type KeyboardEvent } from 'react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useScrollCue } from '@/hooks/useScrollCue';
 
 export interface TabItem { id: string; label: string; /** Number of items that need attention; shown as a badge when above zero. */ badge?: number; badgeLabel?: string }
 
@@ -33,6 +34,25 @@ export function nextTab(ids: readonly string[], current: string, key: string): s
  */
 export default function Tabs({ label, tabs, selected, onSelect, idPrefix }: TabsProps) {
   const refs = useRef(new Map<string, HTMLButtonElement>());
+  // When the row is wider than its box (phones), the cut edge fades out so it is clear that it can be scrolled.
+  const [row, more] = useScrollCue(tabs.length);
+  // Keep the selected tab inside the visible part of a scrolling row (a link such as ?view=audit can select the last tab).
+  useEffect(() => {
+    const ensureVisible = () => {
+      const box = row.current; const tab = refs.current.get(selected);
+      if (!box || !tab) return;
+      // Position of the tab inside the scrolling content (offsetLeft would be relative to a different ancestor).
+      const start = tab.getBoundingClientRect().left - box.getBoundingClientRect().left + box.scrollLeft;
+      const end = start + tab.offsetWidth;
+      if (start < box.scrollLeft) box.scrollTo({ left: Math.max(0, start - 8) });
+      else if (end > box.scrollLeft + box.clientWidth) box.scrollTo({ left: end - box.clientWidth + 8 });
+    };
+    ensureVisible();
+    // Fonts and badges change the widths a moment after the first paint, so check once more.
+    void document.fonts?.ready.then(ensureVisible);
+    const later = window.setTimeout(ensureVisible, 500);
+    return () => window.clearTimeout(later);
+  }, [selected, row]);
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const target = nextTab(tabs.map(tab => tab.id), selected, event.key);
     if (!target) return;
@@ -41,7 +61,7 @@ export default function Tabs({ label, tabs, selected, onSelect, idPrefix }: Tabs
     refs.current.get(target)?.focus();
   };
   return (
-    <div className="tabs" role="tablist" aria-label={label} onKeyDown={onKeyDown}>
+    <div ref={row} className="tabs" data-more={more || undefined} role="tablist" aria-label={label} onKeyDown={onKeyDown}>
       {tabs.map(tab => (
         <button
           key={tab.id} type="button" role="tab" id={tabId(idPrefix, tab.id)}
