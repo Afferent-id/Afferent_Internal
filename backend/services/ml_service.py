@@ -68,6 +68,6 @@ def scan(value: str) -> dict | None:
 
 def proxy_verdict(value: str) -> dict:
     # URL-trained DL remains available for an explicitly submitted full URL.
-    # Its calibration/thresholds cannot be reused for hostname-only traffic.
-    from services.domain_scanner import scan as scan_domain
-    return scan_domain(value)
+    # Hostname-only traffic is evaluated via calibrated Stacker XGBoost (FPR <= 0.3%).
+    from services.stacker_scanner import scan as scan_stacker
+    return scan_stacker(value)

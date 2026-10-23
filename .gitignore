@@ -58,6 +58,12 @@ docs/visual-checks/
 dataset/cache/
 dataset/.tld_cache/
 dataset/raw/tranco/.cache/
+
+# Large LLM Model Weights & Caches (>100MB rejected by GitHub)
+*.safetensors
+*.gguf
+Finetune LLM/qwen*/
+Finetune LLM/*cache*/
 .tranco_cache/
 .tranco/
 
