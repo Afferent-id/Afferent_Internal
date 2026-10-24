@@ -60,10 +60,48 @@ TIMEOUT = float(os.environ.get("PROXY_DECISION_TIMEOUT_SECONDS", "2.5"))
 FAIL_MODE = os.environ.get("PROXY_FAIL_MODE", "closed").strip().lower()
 SERVICE_KEY = secret("SERVICE_API_KEY")
 
+# Domains that are ALWAYS allowed without ML inspection.
+# Add any service here that should never be intercepted by AFFERENT.
+ALWAYS_ALLOW_DOMAINS: tuple[str, ...] = (
+    # Discord
+    "discord.com", "discordapp.com", "discord.gg", "discordapp.net",
+    "discord.media", "gateway.discord.gg", "cdn.discordapp.com",
+    "media.discordapp.net",
+    # WhatsApp / Meta
+    "whatsapp.com", "whatsapp.net",
+    # Telegram
+    "telegram.org", "t.me",
+    # Slack
+    "slack.com", "slack-edge.com",
+    # Zoom
+    "zoom.us", "zoom.com",
+    # Microsoft / Windows Update
+    "microsoft.com", "windows.com", "windowsupdate.com", "live.com",
+    "office.com", "office365.com",
+    # Apple / iCloud
+    "apple.com", "icloud.com",
+    # Google core
+    "googleapis.com", "gstatic.com", "accounts.google.com",
+    # CDN / infrastructure
+    "cloudflare.com", "fastly.net", "akamai.net", "akamaized.net",
+)
+
+
+def _is_always_allowed(host: str) -> bool:
+    """Return True if host matches any ALWAYS_ALLOW_DOMAINS entry."""
+    host = host.lower().split(":")[0]
+    for domain in ALWAYS_ALLOW_DOMAINS:
+        if host == domain or host.endswith("." + domain):
+            return True
+    return False
+
 
 def local_fallback_decision(target: str) -> dict:
     """Evaluate domain locally using Stacker ML and whitelist if Flask API is unreachable."""
     host = target.split(":")[0].strip().lower()
+    # 0. Hard-coded always-allow list (Discord, messaging apps, CDNs, etc.)
+    if _is_always_allowed(host):
+        return {"action": "allow", "domain": host, "reason": "Trusted service always-allow"}
     # 1. Whitelist / Trusted Domains Check
     try:
         import sys
@@ -93,6 +131,9 @@ def local_fallback_decision(target: str) -> dict:
 
 
 def decision(client_ip: str, method: str, target: str) -> dict:
+    # Short-circuit for always-allowed services before hitting Flask API
+    if _is_always_allowed(target):
+        return {"action": "allow", "domain": target.split(":")[0].lower(), "reason": "Trusted service always-allow"}
     event_id = str(uuid.uuid4())
     port = None
     if method.upper() == "CONNECT" and ":" in target:

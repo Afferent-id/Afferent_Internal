@@ -16,7 +16,7 @@ from security import (
 )
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 validate_runtime_security()
 
 from routes.threat import threat_bp
