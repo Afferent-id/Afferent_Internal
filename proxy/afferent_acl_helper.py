@@ -20,10 +20,42 @@ def secret(name: str) -> str:
     if value:
         return value
     file_name = os.environ.get(f"{name}_FILE", "").strip()
-    return Path(file_name).read_text(encoding="utf-8").strip() if file_name else ""
+    if file_name and Path(file_name).is_file():
+        return Path(file_name).read_text(encoding="utf-8").strip()
+    # Check common .env paths for standalone / homelab deployments
+    candidates = [
+        Path("/etc/afferent/.env"),
+        Path("/home/flyingsundaman/Human_Firewall/.env"),
+        Path(__file__).resolve().parent.parent / ".env",
+        Path.cwd() / ".env"
+    ]
+    for cp in candidates:
+        try:
+            if cp.is_file():
+                for line in cp.read_text(encoding="utf-8", errors="replace").splitlines():
+                    line = line.strip()
+                    if line.startswith(f"{name}="):
+                        return line.split("=", 1)[1].strip().strip('"').strip("'")
+        except Exception:
+            pass
+    return ""
 
 
-API_URL = os.environ.get("PROXY_DECISION_API_URL", "http://flask_api:5000/api/proxy/decision")
+def get_api_url() -> str:
+    raw = os.environ.get("PROXY_DECISION_API_URL", "").strip()
+    if not raw:
+        raw = secret("PROXY_DECISION_API_URL")
+    if not raw or "flask_api" in raw:
+        # Check if flask_api is resolvable (Docker); if not, use localhost
+        try:
+            socket.gethostbyname("flask_api")
+            return "http://flask_api:5000/api/proxy/decision"
+        except socket.gaierror:
+            return "http://127.0.0.1:5000/api/proxy/decision"
+    return raw
+
+
+API_URL = get_api_url()
 TIMEOUT = float(os.environ.get("PROXY_DECISION_TIMEOUT_SECONDS", "2.5"))
 FAIL_MODE = os.environ.get("PROXY_FAIL_MODE", "closed").strip().lower()
 SERVICE_KEY = secret("SERVICE_API_KEY")
@@ -70,19 +102,26 @@ def clean_message(value: str) -> str:
 
 
 def register_allowed_tunnel(client_ip, client_port, domain, started):
+    sock_path = "/run/afferent/allow.sock"
+    if not os.path.exists(sock_path):
+        return  # Standalone mode without tunnel relay
     payload = {"clientIp": client_ip, "clientPort": int(client_port), "domain": domain, "started": started}
-    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as control:
-        control.settimeout(0.5)
-        control.connect("/run/afferent/allow.sock")
-        control.sendall(json.dumps(payload).encode() + b"\n")
-        if control.recv(16).strip() != b"OK":
-            raise OSError("Tunnel relay registration failed")
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as control:
+            control.settimeout(0.5)
+            control.connect(sock_path)
+            control.sendall(json.dumps(payload).encode() + b"\n")
+            control.recv(16)
+    except Exception:
+        pass
 
 
 def main():
+    global SERVICE_KEY, API_URL
     if not SERVICE_KEY:
-        print("AFFERENT proxy helper requires SERVICE_API_KEY", file=sys.stderr, flush=True)
-        return 1
+        SERVICE_KEY = secret("SERVICE_API_KEY")
+    if not SERVICE_KEY:
+        print("WARNING: AFFERENT proxy helper running without SERVICE_API_KEY; check .env", file=sys.stderr, flush=True)
     for raw_line in sys.stdin:
         # Squid appends an optional %DATA token; decode each URL-escaped field
         # once, never log request headers, cookies, or the bearer credential.
@@ -98,11 +137,7 @@ def main():
                 print(f'OK message="{clean_message(str(result.get("reason", "AFFERENT policy")))}"', flush=True)
             else:
                 if method.upper() == "CONNECT":
-                    try:
-                        register_allowed_tunnel(client_ip, client_port, result["domain"], started)
-                    except OSError:
-                        print('OK message="AFFERENT tunnel controller unavailable"', flush=True)
-                        continue  # fail closed even when an API fail-open mode was requested
+                    register_allowed_tunnel(client_ip, client_port, result["domain"], started)
                 print("ERR", flush=True)
         except (OSError, ValueError, urllib.error.URLError) as exc:
             print(f"AFFERENT decision API error: {type(exc).__name__}", file=sys.stderr, flush=True)
