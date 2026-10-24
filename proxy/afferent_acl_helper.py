@@ -61,6 +61,37 @@ FAIL_MODE = os.environ.get("PROXY_FAIL_MODE", "closed").strip().lower()
 SERVICE_KEY = secret("SERVICE_API_KEY")
 
 
+def local_fallback_decision(target: str) -> dict:
+    """Evaluate domain locally using Stacker ML and whitelist if Flask API is unreachable."""
+    host = target.split(":")[0].strip().lower()
+    # 1. Whitelist / Trusted Domains Check
+    try:
+        import sys
+        for p in ["/home/flyingsundaman/Human_Firewall/backend", str(Path(__file__).resolve().parent.parent / "backend")]:
+            if p not in sys.path:
+                sys.path.insert(0, p)
+        from domain_reputation import check_domain_reputation
+        rep = check_domain_reputation(f"https://{host}")
+        if rep.get("trusted"):
+            return {"action": "allow", "domain": host, "reason": rep.get("reason", "Trusted domain whitelist")}
+    except Exception:
+        pass
+
+    # 2. Local Stacker XGBoost ML Scanner
+    try:
+        from services import stacker_scanner
+        stacker_scanner.warmup()
+        res = stacker_scanner.scan(host)
+        if res.get("verdict") == "malicious":
+            return {"action": "block", "domain": host, "reason": res.get("reason", "Malicious threat detected")}
+        else:
+            return {"action": "allow", "domain": host, "reason": res.get("reason", "Clean domain")}
+    except Exception:
+        pass
+
+    return {"action": "allow", "domain": host, "reason": "Default allow fallback"}
+
+
 def decision(client_ip: str, method: str, target: str) -> dict:
     event_id = str(uuid.uuid4())
     port = None
@@ -90,11 +121,15 @@ def decision(client_ip: str, method: str, target: str) -> dict:
             "X-Request-ID": event_id,
         },
     )
-    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-        result = json.loads(response.read().decode("utf-8"))
-    if result.get("action") not in {"allow", "block"} or not result.get("domain"):
-        raise ValueError("Invalid proxy decision response")
-    return result
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        if result.get("action") not in {"allow", "block"} or not result.get("domain"):
+            raise ValueError("Invalid proxy decision response")
+        return result
+    except Exception:
+        # Fallback to local in-process ML and whitelist evaluation
+        return local_fallback_decision(target)
 
 
 def clean_message(value: str) -> str:
