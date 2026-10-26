@@ -5,6 +5,7 @@ import secrets
 import time
 from contextlib import closing
 import database
+from services.notification_service import education_delivery
 
 # Keep old versions immutable: completed assessments retain their original grade.
 QUESTIONS = (
@@ -123,9 +124,14 @@ def inbox():
             ORDER BY e.needs_training DESC,e.created_at DESC LIMIT 100''').fetchall()
         logs = conn.execute('''SELECT v.exam_id,v.kind,v.created_at FROM exam_violations v
             WHERE v.exam_id IN (SELECT id FROM learning_exams ORDER BY created_at DESC LIMIT 100) ORDER BY v.id''').fetchall()
+        deliveries = {email: education_delivery(conn, email) for email in {r['email'] for r in rows}}
     return {'assessments':[{**serialize(r),'email':r['email'],'division':r['division'],
         'observations':r['observations'],'observationLog':[dict(v) for v in logs if v['exam_id']==r['id']],
-        'outboxId':r['outbox_id'],'sentAt':r['sent_at'],'deliveryError':r['last_error']} for r in rows]}
+        'outboxId':r['outbox_id'],'sentAt':r['sent_at'],'deliveryError':r['last_error'],
+        'delivery':deliveries[r['email']]['delivery'],
+        'canSend':bool(r['status']=='completed' and r['needs_training'] and not r['outbox_id']
+            and deliveries[r['email']]['canSend'] and os.environ.get('EDUCATION_EMAIL_ENABLED','true').lower()=='true')}
+        for r in rows]}
 
 
 def queue_training(identity, exam_id, reason, request_id):
@@ -145,6 +151,8 @@ def queue_training(identity, exam_id, reason, request_id):
         previous = conn.execute('SELECT id FROM notification_outbox WHERE dedupe_key=?',(key,)).fetchone()
         if previous:
             return {'queued':True,'duplicate':True,'outboxId':previous['id']}
+        if not education_delivery(conn, row['email'])['canSend']:
+            raise ValueError('A security education email is already queued or was sent recently. Refresh the inbox and wait for the shared cooldown.')
         text = (f"Your phishing assessment score is {row['percent']:g}% ({row['correct']}/15). "
             f"The pass threshold is {row['pass_percent']}%.\n\n{reason.strip()}\n\n"
             'Please complete the security training recommended by your administrator. '

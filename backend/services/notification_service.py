@@ -3,6 +3,7 @@ import html
 import logging
 import os
 import time
+import uuid
 from contextlib import closing
 
 import database
@@ -11,25 +12,46 @@ from services.email_service import EmailService
 logger = logging.getLogger(__name__)
 
 
+def education_cooldown():
+    return max(3600, int(os.environ.get('EDUCATION_COOLDOWN_SECONDS', '86400')))
+
+
+def education_delivery(conn, recipient):
+    """One recipient-wide delivery state for baseline and assessment follow-ups."""
+    row = conn.execute('''SELECT n.id,n.sent_at,n.last_error,n.attempts,n.created_at,
+        CASE WHEN n.dedupe_key LIKE 'training:exam:%' THEN 'training' ELSE 'baseline' END AS kind,
+        a.actor_role,
+        MAX(COALESCE(CAST(strftime('%s',n.sent_at) AS INTEGER),0),
+            COALESCE(CAST(strftime('%s',n.created_at) AS INTEGER),0)) AS epoch
+        FROM notification_outbox n LEFT JOIN notification_audit a ON a.outbox_id=n.id
+        WHERE lower(n.recipient)=lower(?)
+        AND (n.dedupe_key LIKE 'education:%' OR n.dedupe_key LIKE 'training:exam:%')
+        ORDER BY CASE WHEN n.last_error='skipped_not_eligible' THEN 2
+            WHEN n.sent_at IS NULL THEN 0 ELSE 1 END,epoch DESC,n.id DESC LIMIT 1''',
+        (recipient,)).fetchone()
+    delivery = dict(row) if row else None
+    cancelled = row and row['last_error'] == 'skipped_not_eligible'
+    pending = row and row['sent_at'] is None and not cancelled
+    cooldown_until = row['epoch'] + education_cooldown() if row and not cancelled and not pending else None
+    return {'delivery': delivery, 'canSend': not pending and (cooldown_until is None or cooldown_until <= int(time.time())),
+            'cooldownUntil': cooldown_until}
+
+
 def security_inbox():
     threshold = int(os.environ.get('EDUCATION_SCORE_THRESHOLD', '60'))
-    cooldown = max(3600, int(os.environ.get('EDUCATION_COOLDOWN_SECONDS', '86400')))
     with closing(database.get_connection()) as conn:
         employees = [dict(row) for row in conn.execute('''SELECT a.id, a.email, u.divisi, u.points
             FROM employee_accounts a JOIN user_history u ON lower(a.email)=lower(u.email)
             WHERE a.role='employee' AND a.is_active=1 AND u.points < ?
             ORDER BY u.points, a.email''', (threshold,)).fetchall()]
         for employee in employees:
-            row = conn.execute('''SELECT id, sent_at, last_error, attempts, created_at,
-                CAST(strftime('%s',created_at) AS INTEGER) AS epoch
-                FROM notification_outbox WHERE recipient=? AND dedupe_key LIKE 'education:%'
-                ORDER BY id DESC LIMIT 1''', (employee['email'],)).fetchone()
-            delivery = dict(row) if row else None
-            employee['delivery'] = delivery
-            employee['canSend'] = not row or (row['sent_at'] is not None and row['epoch'] <= int(time.time()) - cooldown)
+            employee.update(education_delivery(conn, employee['email']))
         reports = [dict(row) for row in conn.execute('''SELECT * FROM employee_url_reports
             WHERE report_type='url' ORDER BY created_at DESC, id LIMIT 100''').fetchall()]
-        audit = [dict(row) for row in conn.execute('SELECT * FROM notification_audit ORDER BY id DESC LIMIT 30').fetchall()]
+        audit = [dict(row) for row in conn.execute('''SELECT a.*,n.sent_at,n.last_error,n.attempts,
+            CASE WHEN n.dedupe_key LIKE 'training:exam:%' THEN 'training' ELSE 'baseline' END AS kind
+            FROM notification_audit a JOIN notification_outbox n ON n.id=a.outbox_id
+            ORDER BY a.id DESC LIMIT 30''').fetchall()]
     # Evidence does not mutate proxy policies; only an explicit SOC action does.
     from services.report_service import _serialized
     reports = [_serialized(report) for report in reports]
@@ -49,8 +71,6 @@ def queue_manual_warning(identity, account_id, reason, request_id):
     if not isinstance(reason, str) or not 5 <= len(reason.strip()) <= 1000:
         raise ValueError('Alasan warning wajib 5–1000 karakter')
     threshold = int(os.environ.get('EDUCATION_SCORE_THRESHOLD', '60'))
-    cooldown = max(3600, int(os.environ.get('EDUCATION_COOLDOWN_SECONDS', '86400')))
-    now = int(time.time())
     with closing(database.get_connection()) as conn, conn:
         conn.execute('BEGIN IMMEDIATE')
         row = conn.execute('''SELECT a.email, u.points FROM employee_accounts a
@@ -59,18 +79,15 @@ def queue_manual_warning(identity, account_id, reason, request_id):
             (account_id, threshold)).fetchone()
         if not row:
             raise ValueError('Penerima harus employee aktif dengan poin di bawah baseline')
-        previous = conn.execute('''SELECT id FROM notification_outbox WHERE recipient=?
-            AND dedupe_key LIKE 'education:%' AND (sent_at IS NULL OR
-            CAST(strftime('%s',created_at) AS INTEGER) > ?) LIMIT 1''', (row['email'], now - cooldown)).fetchone()
-        if previous:
-            raise ValueError('Warning masih antre atau cooldown belum selesai')
+        if not education_delivery(conn, row['email'])['canSend']:
+            raise ValueError('A security education email is already queued or was sent recently. Refresh the inbox and wait for the shared cooldown.')
         text = (f"Skor pembelajaran Anda {row['points']}/200, di bawah baseline {threshold}/200. "
                 f"Pesan tim {identity.role.upper()}: {reason.strip()}\n\n"
                 'Lanjutkan training, Spot the Fake, dan kuis harian di dashboard Afferent Reflex. '
                 'Periksa domain, jangan bagikan OTP/password, dan laporkan link meragukan.')
         outbox = conn.execute('''INSERT INTO notification_outbox
             (dedupe_key, recipient, subject, text_body) VALUES (?, ?, ?, ?)''',
-            (f"education:{row['email']}:{now // cooldown}", row['email'], 'Afferent Reflex — warning edukasi keamanan', text))
+            (f"education:{row['email']}:{request_id}", row['email'], 'Afferent Reflex — warning edukasi keamanan', text))
         conn.execute('''INSERT INTO notification_audit
             (actor_email, actor_role, recipient, score, reason, request_id, outbox_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)''',
@@ -88,24 +105,22 @@ def enqueue(recipient, subject, text, dedupe_key):
 
 def queue_education():
     threshold = int(os.environ.get('EDUCATION_SCORE_THRESHOLD', '60'))
-    cooldown = max(3600, int(os.environ.get('EDUCATION_COOLDOWN_SECONDS', '86400')))
-    since = int(time.time()) - cooldown
-    with closing(database.get_connection()) as conn:
+    with closing(database.get_connection()) as conn, conn:
+        conn.execute('BEGIN IMMEDIATE')
         rows = conn.execute('''SELECT a.email, u.points, u.click_count, u.viewed_training_count
             FROM employee_accounts a JOIN user_history u ON lower(u.email)=lower(a.email)
-            WHERE a.role='employee' AND a.is_active=1 AND u.points < ?
-            AND NOT EXISTS (SELECT 1 FROM notification_outbox n
-                WHERE n.recipient=a.email AND n.dedupe_key LIKE 'education:%'
-                AND (n.sent_at IS NULL OR CAST(strftime('%s', n.created_at) AS INTEGER) > ?))''',
-            (threshold, since)).fetchall()
-    for row in rows:
-        text = (f"Skor pembelajaran Anda saat ini {row['points']}/200. "
-                f"Tercatat {row['click_count']} klik simulasi dan {row['viewed_training_count']} training selesai. "
-                'Luangkan waktu untuk training, Spot the Fake, dan kuis harian. '
-                'Periksa domain sebelum membuka link, jangan bagikan OTP/password, '
-                'dan laporkan link yang meragukan melalui dashboard Afferent Reflex.')
-        enqueue(row['email'], 'Afferent Reflex — edukasi keamanan personal', text,
-                f"education:{row['email']}:{int(time.time()) // cooldown}")
+            WHERE a.role='employee' AND a.is_active=1 AND u.points < ?''', (threshold,)).fetchall()
+        for row in rows:
+            if not education_delivery(conn, row['email'])['canSend']:
+                continue
+            text = (f"Skor pembelajaran Anda saat ini {row['points']}/200. "
+                    f"Tercatat {row['click_count']} klik simulasi dan {row['viewed_training_count']} training selesai. "
+                    'Luangkan waktu untuk training, Spot the Fake, dan kuis harian. '
+                    'Periksa domain sebelum membuka link, jangan bagikan OTP/password, '
+                    'dan laporkan link yang meragukan melalui dashboard Afferent Reflex.')
+            conn.execute('''INSERT INTO notification_outbox (dedupe_key,recipient,subject,text_body)
+                VALUES (?,?,?,?)''', (f"education:{row['email']}:auto:{uuid.uuid4().hex}",
+                row['email'], 'Afferent Reflex — edukasi keamanan personal', text))
 
 
 def deliver_one():

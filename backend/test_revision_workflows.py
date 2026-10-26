@@ -47,7 +47,7 @@ class RevisionWorkflows(unittest.TestCase):
         self.assertEqual(self.client.post('/api/auth/login',json={'email':self.identity.email,'password':self.password}).status_code,401)
 
     def test_campaign_gateway_routes_low_score_click_to_exam_without_issuing_identity(self):
-        database.adjust_points(self.identity.email,'IT',-50)
+        database.adjust_points(self.identity.email,'IT',-40)  # exactly 60 before the verified click
         rid = 'TestRID123'
         campaign = {'id':uuid.uuid4().hex,'results':[{'id':rid,'email':self.identity.email}],
             'timeline':[{'email':self.identity.email,'message':'Clicked Link'}]}
@@ -56,6 +56,8 @@ class RevisionWorkflows(unittest.TestCase):
             response = self.client.get('/simulation/entry?rid='+rid+'&url=http://127.0.0.1/private',headers=self.headers)
             self.assertEqual(response.status_code,302)
             self.assertEqual(response.headers['Location'],'http://dashboard.demo.test:3000/exam')
+            exam = exam_service.current(self.identity)
+            self.assertEqual((exam['trigger_score'], exam['status']), (50, 'required'))
             self.assertEqual(forward.call_args.kwargs['params'],{'rid':rid})
             self.assertFalse(forward.call_args.kwargs['allow_redirects'])
             anonymous = self.client.get('/simulation/entry?rid='+rid)

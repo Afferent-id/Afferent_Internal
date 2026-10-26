@@ -77,6 +77,29 @@ when the administrator adds a recommendation and chooses Send email. The existin
 durable Mailpit outbox handles retries and deduplicates by assessment. The result,
 recommendation, actor and delivery status are retained.
 
+### Cross-inbox email coordination (27 October follow-up)
+
+Administrator training recommendations and SOC baseline warnings share one
+recipient-wide pending/cooldown check, including optional automatic education.
+An email awaiting delivery or retry blocks another approval. After delivery the
+configured `EDUCATION_COOLDOWN_SECONDS` (default 24 hours, minimum one hour) is
+measured from the later of creation/delivery time. Cancelled, ineligible sends do
+not count as delivered mail. Approval checks and insertion share the same SQLite
+write transaction, so simultaneous administrator/SOC requests create one email.
+The assessment's own recommendation remains idempotent by exam ID.
+
+Both inboxes display the persisted outcome. The SOC delivery record joins each
+approval to its actual outbox status; it is not proof of delivery merely because
+an approval exists. Existing audit entries and already delivered duplicates are
+retained. No schema change or cleanup of historical records is required.
+
+For the click-to-exam flow, an authenticated employee using the same hostname as
+the new gateway campaign is redirected to **Start assessment** once the verified
+click makes the score strictly below the threshold: 60 to 50 triggers it, while
+70 to 60 does not. The employee presses Start to request fullscreen and fetch
+questions; the app does not silently start the exam. Direct GoPhish links from
+older campaigns and delayed telemetry do not guarantee an immediate redirect.
+
 The web exam requests fullscreen and prevents copy/cut/paste/context menus inside
 the assessment. Tab hiding, window blur and fullscreen exit are recorded, bounded
 to 100 observations per attempt. They are informational and do not alter the grade.

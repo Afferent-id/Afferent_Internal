@@ -16,11 +16,12 @@ import type { MessageKey } from '@/i18n/messages';
 import DataTable from '@/components/ui/DataTable';
 import { useNow } from '@/hooks/useNow';
 import { formatAgo } from '@/lib/relativeTime';
+import NotificationDelivery, { type EducationDelivery } from './NotificationDelivery';
 
 type Employee = { id: number; email: string; divisi: string; points: number; canSend: boolean;
-  delivery: { sent_at: string | null; last_error: string | null; created_at: string; attempts: number } | null };
+  delivery: EducationDelivery | null };
 type Report = EmployeeReport;
-type Audit = { id: number; actor_email: string; actor_role: string; recipient: string; score: number; reason: string; created_at: string };
+type Audit = EducationDelivery & { id: number; actor_email: string; actor_role: string; recipient: string; score: number; reason: string; created_at: string };
 type Inbox = { employees: Employee[]; reports: Report[]; audit: Audit[]; threshold: number; emailEnabled: boolean; automatic: boolean; deliveryMode: string };
 
 type Tab = 'reports' | 'access' | 'employees' | 'audit';
@@ -36,6 +37,7 @@ export default function SecurityInboxSection({ canDecideAccess = false, onOpenIn
   const [sendError, setSendError] = useState('');
   const [viewingReport, setViewingReport] = useState<Report | null>(null);
   const now = useNow();
+  const selectedState = data?.employees.find(employee => employee.id === selected?.id);
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -43,21 +45,15 @@ export default function SecurityInboxSection({ canDecideAccess = false, onOpenIn
     setBusy(true); setSendError('');
     try {
       const res = await fetch('/api/admin/security-inbox', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: selected.id, reason }) });
-      if (!res.ok) throw new Error('send');
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || t('inbox.err.send'));
       toast.show({ message: t('inbox.sent'), tone: 'ok' });
       setSelected(null); refresh();
-    } catch { setSendError(t('inbox.err.send')); }
+    } catch (err) { refresh(); setSendError(err instanceof Error && !(err instanceof TypeError) ? err.message : t('inbox.err.send')); }
     finally { setBusy(false); }
   }
 
   const status = (value: string) => (['pending_review', 'open', 'resolved'].includes(value) ? t(`inbox.status.${value}` as MessageKey) : value.replaceAll('_', ' '));
-  const delivery = (employee: Employee) => {
-    const d = employee.delivery;
-    if (!d) return t('inbox.emp.none');
-    if (d.last_error === 'skipped_not_eligible') return t('inbox.emp.cancelled');
-    if (d.sent_at) return t('inbox.emp.sent', { time: d.sent_at });
-    return d.last_error ? t('inbox.emp.retry') : t('inbox.emp.queued');
-  };
   const tabs: { id: Tab; label: string; icon: typeof Flag }[] = [
     { id: 'reports', label: t('inbox.tab.reports'), icon: Flag },
     { id: 'access', label: t('acc.tab'), icon: Flag },
@@ -98,7 +94,7 @@ export default function SecurityInboxSection({ canDecideAccess = false, onOpenIn
         <DataTable<Employee> caption={t('inbox.tab.warnings')} rows={data.employees} rowKey={e => String(e.id)} pageSize={10} density="comfortable" columns={[
           { key: 'employee', header: t('login.col.person'), render: e => <span className="cell-clip" title={e.email}>{e.email}<small className="cell-sub">{e.divisi}</small></span> },
           { key: 'points', header: t('soc.points'), render: e => `${e.points}/200` },
-          { key: 'delivery', header: t('soc.record.status'), render: e => delivery(e) },
+          { key: 'delivery', header: t('soc.record.status'), render: e => <NotificationDelivery delivery={e.delivery} /> },
           { key: 'send', header: t('threat.col.remediation'), render: employee => <button type="button" className="btn" disabled={!employee.canSend || !data.emailEnabled} onClick={() => { setSelected(employee); setSendError(''); }}><Mail size={14} aria-hidden="true" />{employee.canSend ? t('inbox.emp.send') : t('inbox.emp.cooldown')}</button> },
         ]} empty={<StateMessage variant="empty" title={t('inbox.emp.empty')} why=" " />} />
       </div>}
@@ -108,6 +104,7 @@ export default function SecurityInboxSection({ canDecideAccess = false, onOpenIn
           { key: 'recipient', header: t('login.col.person'), render: a => <span className="cell-clip" title={a.recipient}>{a.recipient}</span> },
           { key: 'actor', header: t('aud.col.who'), secondary: true, render: a => <span className="cell-clip">{a.actor_email}</span> },
           { key: 'reason', header: t('aud.col.reason'), render: a => <span className="cell-preview" title={a.reason}>{a.reason}</span> },
+          { key: 'delivery', header: t('soc.record.status'), render: a => <NotificationDelivery delivery={a} /> },
           { key: 'at', header: t('soc.recorded'), secondary: true, render: a => formatAgo(a.created_at, lang, now) },
         ]} empty={<StateMessage variant="empty" title={t('inbox.audit.empty')} why=" " />} />
       </div>}
@@ -118,7 +115,7 @@ export default function SecurityInboxSection({ canDecideAccess = false, onOpenIn
       <Dialog open={selected !== null} onClose={() => setSelected(null)} busy={busy} title={t('inbox.dialog.title')} description={selected ? t('inbox.dialog.person', { email: selected.email, points: selected.points }) : undefined}
         footer={<>
           <button type="button" className="btn" disabled={busy} onClick={() => setSelected(null)}>{t('common.cancel')}</button>
-          <button type="submit" form="warning-form" className="btn btn-primary" disabled={busy}>{busy ? t('inbox.dialog.submitting') : t('inbox.dialog.submit')}</button>
+          <button type="submit" form="warning-form" className="btn btn-primary" disabled={busy || !selectedState?.canSend || !data?.emailEnabled}>{busy ? t('inbox.dialog.submitting') : t('inbox.dialog.submit')}</button>
         </>}>
         <form id="warning-form" className="ui-form" onSubmit={send}>
           <Field label={t('inbox.dialog.reason')} hint={t('inbox.dialog.note')} error={sendError}>{c => <textarea {...c} required minLength={5} maxLength={1000} rows={4} value={reason} onChange={event => setReason(event.target.value)} />}</Field>
