@@ -141,12 +141,14 @@ services:
       - SMTP_PORT=1025
       - SMTP_USER=
       - SMTP_PASSWORD=
-      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-AFFERENT Security <security@afferent.local>}
+      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-Afferent Reflex Security <security@afferent.local>}
       - SMTP_SECURITY=none
       - SMTP_TIMEOUT_SECONDS=${SMTP_TIMEOUT_SECONDS:-10}
       - EDUCATION_EMAIL_ENABLED=${EDUCATION_EMAIL_ENABLED:-true}
       - EDUCATION_AUTO_ENABLED=${EDUCATION_AUTO_ENABLED:-false}
       - EDUCATION_SCORE_THRESHOLD=${EDUCATION_SCORE_THRESHOLD:-60}
+      - EXAM_SCORE_THRESHOLD=${EXAM_SCORE_THRESHOLD:-60}
+      - EXAM_PASS_PERCENT=${EXAM_PASS_PERCENT:-80}
       - EDUCATION_COOLDOWN_SECONDS=${EDUCATION_COOLDOWN_SECONDS:-86400}
 
       - PROXY_FEATURE_ENABLED=true
@@ -187,11 +189,6 @@ services:
       - FILE_SCAN_MAX_MB=${FILE_SCAN_MAX_MB:-${PDF_REPORT_MAX_MB:-10}}
       - FILE_SCAN_RETENTION_SECONDS=${FILE_SCAN_RETENTION_SECONDS:-${PDF_REPORT_RETENTION_SECONDS:-3600}}
       - VT_REQUESTS_PER_MINUTE=${VT_REQUESTS_PER_MINUTE:-4}
-      - LOCAL_LLM_ENABLED=${LOCAL_LLM_ENABLED:-false}
-      - LOCAL_LLM_MODEL=${LOCAL_LLM_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
-      - LOCAL_LLM_OUTPUT_MODE=${LOCAL_LLM_OUTPUT_MODE:-json}
-      - LOCAL_LLM_URL=${LOCAL_LLM_URL:-http://local_llm:11434}
-      - LOCAL_LLM_TIMEOUT_SECONDS=${LOCAL_LLM_TIMEOUT_SECONDS:-45}
 
       - GOPHISH_API_KEY=${GOPHISH_API_KEY}
       - GOPHISH_API_URL=${GOPHISH_API_URL}
@@ -204,6 +201,8 @@ services:
 
       - SERVER_BASE_URL=${SERVER_BASE_URL:-}
       - SIMULATION_BASE_URL=${SIMULATION_BASE_URL:-}
+      - SIMULATION_ENTRY_URL=${SIMULATION_ENTRY_URL:-}
+      - GOPHISH_PHISH_INTERNAL_URL=${GOPHISH_PHISH_INTERNAL_URL:-http://gophish:80}
       - SIMULATION_EDUCATION_URL=${SIMULATION_EDUCATION_URL:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=2)"]
@@ -301,13 +300,15 @@ services:
     environment:
       - DB_PATH=/app/instance/human_firewall.db
       - GOPHISH_SYNC_ENABLED=${GOPHISH_SYNC_ENABLED:-true}
+      - EXAM_SCORE_THRESHOLD=${EXAM_SCORE_THRESHOLD:-60}
+      - EXAM_PASS_PERCENT=${EXAM_PASS_PERCENT:-80}
       - GOPHISH_API_KEY=${GOPHISH_API_KEY}
       - GOPHISH_API_URL=${GOPHISH_API_URL}
       - GOPHISH_CA_BUNDLE=${GOPHISH_CA_BUNDLE:-}
       - SMTP_HOST=mailpit
       - SMTP_PORT=1025
       - SMTP_SECURITY=none
-      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-AFFERENT Security <security@afferent.local>}
+      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS:-Afferent Reflex Security <security@afferent.local>}
       - SMTP_TIMEOUT_SECONDS=10
       - EDUCATION_EMAIL_ENABLED=${EDUCATION_EMAIL_ENABLED:-true}
       - EDUCATION_SCORE_THRESHOLD=${EDUCATION_SCORE_THRESHOLD:-60}
@@ -325,28 +326,6 @@ services:
     networks:
       - hfl_network
 
-  # Optional offline hostname second opinion. No public API port is published.
-  local_llm:
-    image: ollama/ollama:0.35.1
-    profiles: [llm]
-    environment:
-      - OLLAMA_NO_CLOUD=true
-      - OLLAMA_NUM_PARALLEL=1
-      - OLLAMA_MAX_LOADED_MODELS=1
-      - OLLAMA_CONTEXT_LENGTH=2048
-    gpus: all
-    volumes:
-      - local_llm_models:/root/.ollama
-      - ./ml/artifacts:/models:ro
-      - ./ml/local_llm/Modelfile:/training/Modelfile:ro
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 15s
-      timeout: 5s
-      retries: 12
-    restart: unless-stopped
-    networks: [hfl_network]
-
   review_worker:
     build: ./backend
     command: ["python", "review_worker.py"]
@@ -363,11 +342,6 @@ services:
       - REDIS_PORT=6379
       - VT_API_KEY=${VT_API_KEY:-}
       - VT_REQUESTS_PER_MINUTE=${VT_REQUESTS_PER_MINUTE:-4}
-      - LOCAL_LLM_ENABLED=${LOCAL_LLM_ENABLED:-false}
-      - LOCAL_LLM_URL=${LOCAL_LLM_URL:-http://local_llm:11434}
-      - LOCAL_LLM_MODEL=${LOCAL_LLM_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
-      - LOCAL_LLM_TIMEOUT_SECONDS=${LOCAL_LLM_TIMEOUT_SECONDS:-45}
-      - LOCAL_LLM_OUTPUT_MODE=${LOCAL_LLM_OUTPUT_MODE:-json}
     depends_on:
       flask_api:
         condition: service_healthy
@@ -380,7 +354,6 @@ services:
     networks: [hfl_network]
 
 volumes:
-  local_llm_models:
   mailpit_data:
   gophish_data:
   flask_db:

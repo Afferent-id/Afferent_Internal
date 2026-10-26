@@ -11,6 +11,7 @@ import StateMessage from '@/components/ui/StateMessage';
 import StatusChip, { type StatusTone } from '@/components/ui/StatusChip';
 import { useI18n } from '@/i18n/I18nProvider';
 import type { MessageKey } from '@/i18n/messages';
+import Dialog from '@/components/ui/Dialog';
 
 interface AuditEvent { id: string; at: string; kind: 'incident' | 'access' | 'warning' | 'proxy'; event: string; actor: string; actor_role: string; subject: string; detail: string }
 
@@ -24,6 +25,7 @@ export default function AuditLogSection() {
   const { data, error, isLoading, refresh } = usePolling<{ events: AuditEvent[] }>('/api/admin/audit-log?limit=200', 30000);
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState('ALL');
+  const [selected, setSelected] = useState<AuditEvent | null>(null);
 
   const rows = useMemo(() => {
     const text = query.toLowerCase();
@@ -39,14 +41,14 @@ export default function AuditLogSection() {
     { key: 'at', header: t('aud.col.when'), sortValue: e => e.at, render: e => <time dateTime={e.at} title={e.at}>{formatAgo(e.at, lang, now)}</time> },
     { key: 'actor', header: t('aud.col.who'), render: e => <span className="cell-clip" title={e.actor}>{e.actor || '—'}<span className="cell-sub">{e.actor_role.toUpperCase()}</span></span> },
     { key: 'event', header: t('aud.col.what'), render: e => <StatusChip tone={TONE[`${e.kind}.${e.event}`] ?? 'neutral'}>{label(e)}</StatusChip> },
-    { key: 'subject', header: t('aud.col.subject'), secondary: true, render: e => <span className="cell-clip" title={e.subject}>{e.subject}</span> },
-    { key: 'detail', header: t('aud.col.reason'), secondary: true, render: e => <span className="cell-clip" title={e.detail}>{e.detail || '—'}</span> },
+    { key: 'subject', header: t('aud.col.subject'), secondary: true, render: e => <span className="cell-preview" title={e.subject}>{e.subject}</span> },
+    { key: 'detail', header: t('aud.col.reason'), secondary: true, render: e => <span className="cell-preview" title={e.detail}>{e.detail || '—'}</span> },
   ];
 
   return (
-    <section className="ops-page" aria-labelledby="aud-title">
+    <section className="ops-page audit-log" aria-labelledby="aud-title">
       <div className="ops-intro">
-        <div><h3 id="aud-title" style={{ fontSize: 16, fontWeight: 600 }}>{t('aud.title')}</h3><p className="emp-muted">{t('aud.desc')}</p></div>
+        <div><h3 id="aud-title" className="visually-hidden">{t('aud.title')}</h3><p className="emp-muted">{t('aud.desc')}</p></div>
         <span className="ops-actions" style={{ flexWrap: 'wrap' }}>
           <span className="emp-muted">{t('aud.count', { n: rows.length })}</span>
           <button type="button" className="btn" onClick={refresh} disabled={isLoading}><RefreshCw size={14} aria-hidden="true" /> {t('aud.refresh')}</button>
@@ -62,7 +64,15 @@ export default function AuditLogSection() {
         ? <StateMessage variant="error" title={t('aud.err.title')} action={{ label: t('common.retry'), onClick: refresh }} />
         : isLoading && !data
           ? <StateMessage variant="loading" />
-          : <DataTable caption={t('aud.title')} columns={columns} rows={rows} rowKey={e => e.id} empty={<StateMessage variant="empty" title={t('aud.empty.title')} why={t('aud.empty.why')} />} />}
+          : <DataTable key={`${query}:${kind}`} caption={t('aud.title')} columns={columns} rows={rows} rowKey={e => e.id} pageSize={10} density="comfortable" onRowClick={setSelected} selectedKey={selected?.id} empty={<StateMessage variant="empty" title={t('aud.empty.title')} why={t('aud.empty.why')} />} />}
+      <Dialog open={selected !== null} onClose={() => setSelected(null)} title={selected ? label(selected) : t('aud.title')} size="md">
+        {selected && <div className="audit-detail"><dl>
+          <div><dt>{t('aud.col.when')}</dt><dd><time dateTime={selected.at}>{new Date(selected.at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-GB', { dateStyle: 'medium', timeStyle: 'long' })}</time></dd></div>
+          <div><dt>{t('aud.col.who')}</dt><dd>{selected.actor}<small className="cell-sub">{selected.actor_role.toUpperCase()}</small></dd></div>
+          <div><dt>{t('aud.col.subject')}</dt><dd>{selected.subject}</dd></div>
+          <div><dt>{t('aud.col.reason')}</dt><dd>{selected.detail || '—'}</dd></div>
+        </dl></div>}
+      </Dialog>
     </section>
   );
 }

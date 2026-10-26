@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchFlaskBackend } from '@/lib/backendClient';
 import { AUTH_SESSION_COOKIE } from '@/lib/authSession';
 
+export async function GET(request: NextRequest) {
+  if (!request.cookies.get(AUTH_SESSION_COOKIE)?.value) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const scanId = request.nextUrl.searchParams.get('scanId');
+  if (!scanId || !/^[a-f0-9]{64}$/.test(scanId)) return NextResponse.json({ error: 'Invalid scan ID' }, { status: 400 });
+  try {
+    const response = await fetchFlaskBackend(`/api/threat/scan?scanId=${scanId}`);
+    return NextResponse.json(await response.json(), { status: response.status });
+  } catch {
+    return NextResponse.json({ error: 'Scan status is unavailable. Please retry.' }, { status: 503 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!request.cookies.get(AUTH_SESSION_COOKIE)?.value) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {

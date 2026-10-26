@@ -22,7 +22,7 @@ class AuditLog(unittest.TestCase):
         self.client = app.test_client()
 
     def test_staff_only(self):
-        for role in ('soc', 'grc', 'ciso'):
+        for role in ('soc',):
             self.assertEqual(self.client.get('/api/admin/audit-log', headers=make_account(role)[1]).status_code, 200, role)
         self.assertEqual(self.client.get('/api/admin/audit-log', headers=make_account('employee')[1]).status_code, 403)
         self.assertEqual(self.client.get('/api/admin/audit-log').status_code, 401)
@@ -31,14 +31,14 @@ class AuditLog(unittest.TestCase):
         soc_email, headers = make_account('soc')
         ticket = 'INC-' + uuid.uuid4().hex[:8].upper()
         database.create_incident(ticket_id=ticket, source_type='real_world_report', divisi='IT', severity='low')
-        self.assertEqual(self.client.patch(f'/api/incidents/{ticket}', json={'status': 'closed', 'note': 'Confirmed harmless.'}, headers=headers).status_code, 200)
+        self.assertEqual(self.client.patch(f'/api/incidents/{ticket}', json={'status': 'closed', 'assignee': 'me', 'note': 'Confirmed harmless.'}, headers=headers).status_code, 200)
         events = audit_log_service.list_events(300)
-        mine = [e for e in events if e['subject'] == ticket]
+        mine = [e for e in events if e['subject'] == ticket and e['event'] == 'resolved']
         self.assertEqual(len(mine), 1)
         self.assertEqual((mine[0]['kind'], mine[0]['event'], mine[0]['actor'], mine[0]['detail']), ('incident', 'resolved', soc_email, 'Confirmed harmless.'))
 
     def test_filter_limit_and_validation(self):
-        headers = make_account('ciso')[1]
+        headers = make_account('soc')[1]
         self.assertEqual(self.client.get('/api/admin/audit-log?kind=bogus', headers=headers).status_code, 400)
         self.assertEqual(self.client.get('/api/admin/audit-log?limit=abc', headers=headers).status_code, 400)
         body = self.client.get('/api/admin/audit-log?kind=incident&limit=1', headers=headers).get_json()

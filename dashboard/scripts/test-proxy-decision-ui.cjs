@@ -28,6 +28,7 @@ const shared = {
 
 async function check(kind, action) {
   const states = [], effects = [], timers = [], writes = [];
+  const streamHandlers = {};
   let cursor = 0, firstRender = true, accepts = false;
   const hooks = {
     useState(initial) {
@@ -46,9 +47,9 @@ async function check(kind, action) {
   } }).outputText;
   const exports = {};
   vm.runInNewContext(compiled, {
-    exports, require: name => name === 'react' ? hooks : name === './DomainSecondOpinion' ? { default: () => null } : name in shared ? shared[name] : require(name),
+    exports, require: name => name === 'react' ? hooks : name in shared ? shared[name] : require(name),
     window: { setTimeout: callback => { timers.push(callback); }, clearTimeout() {} },
-    EventSource: class { addEventListener() {} close() {} },
+    EventSource: class { addEventListener(type, callback) { streamHandlers[type] = callback; } close() {} },
     fetch: async (url, options = {}) => {
       if (options.method === 'POST') {
         writes.push({ url, body: JSON.parse(options.body) });
@@ -72,6 +73,15 @@ async function check(kind, action) {
   }
   render(); effects.forEach(effect => effect()); timers.forEach(timer => timer());
   await new Promise(resolve => setImmediate(resolve));
+  if (kind === 'traffic') {
+    const pause = nodes(render()).find(n => n.type === 'button' && text(n) === 'Pause feed');
+    pause.props.onClick();
+    streamHandlers.update({ data: JSON.stringify({ type: 'traffic.observed', traffic: { event_id: 'traffic-new', domain: 'new.example.test', action: 'allow', method: 'CONNECT', decision_source: 'unknown', occurred_at: '2026-10-03T00:01:00Z' } }) });
+    assert.ok(!text(render()).includes('new.example.test'), 'paused view stays still while new events arrive');
+    nodes(render()).find(n => n.type === 'button' && text(n) === 'Resume feed').props.onClick();
+    assert.ok(text(render()).includes('new.example.test'), 'resuming shows events received during the pause');
+    assert.equal(writes.length, 0, 'pausing never changes protection or policy');
+  }
   const row = nodes(render()).find(node => node.type === 'tr' && text(node).includes(`${kind}.example.test`));
   const button = nodes(row).find(node => node.type === 'button' && text(node).trim().toLowerCase() === action);
   assert.ok(button, 'decision button exists'); button.props.onClick();

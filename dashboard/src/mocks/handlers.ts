@@ -207,8 +207,8 @@ export const routes: Route[] = [
   { method: 'GET', path: /^\/api\/proxy\/verdicts$/, normal: () => f.proxyVerdicts(), empty: () => ({ verdicts: [] }) },
   { method: 'GET', path: /^\/api\/proxy\/traffic$/, normal: () => f.proxyTraffic(), empty: () => ({ events: [] }) },
   { method: 'POST', path: /^\/api\/proxy\/manual-decision$/, normal: async ctx => ok({ verdict: { domain: String((await ctx.body()).domain || 'example.com') } }) },
-  { method: 'GET', path: /^\/api\/proxy\/second-opinion$/, normal: ctx => f.secondOpinion(q(ctx, 'domain') || 'example.com') },
-  { method: 'POST', path: /^\/api\/proxy\/second-opinion$/, normal: async ctx => f.secondOpinion(String((await ctx.body()).domain || 'example.com')) },
+  { method: 'GET', path: /^\/api\/proxy\/second-opinion$/, normal: () => fail(410, 'Local LLM reviews have been retired.') },
+  { method: 'POST', path: /^\/api\/proxy\/second-opinion$/, normal: () => fail(410, 'Local LLM reviews have been retired.') },
   { method: 'GET', path: /^\/api\/proxy\/config$/, normal: () => ({ proxyUrl: 'http://127.0.0.1:3128' }) },
   { method: 'GET', path: /^\/api\/proxy\/audit$/, normal: () => ({ events: [] }) },
   { method: 'GET', path: /^\/api\/proxy\/ca\.crt$/, alwaysOk: true, normal: () => new NextResponse('-----BEGIN CERTIFICATE-----\nMOCK-ONLY\n-----END CERTIFICATE-----\n', {

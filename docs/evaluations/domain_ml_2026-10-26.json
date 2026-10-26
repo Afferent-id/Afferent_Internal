@@ -1,0 +1,706 @@
+{
+  "date": "2026-10-26",
+  "active_model": "domain_v3",
+  "promotion": "No candidate promoted",
+  "evidence_scope": "Repeated historical-source development benchmarks; not external/temporal validation",
+  "corpus": {
+    "source_sha256": {
+      "raw/grambeddings/train.csv": "48b79a07470d999df16d69d697bf29fce4c3bb918e8544b7bc7eb6e3810d2f78",
+      "raw/grambeddings/test.csv": "9f5f7424c50c649f4abb4f507c0bba837fee1324c779f977799761ca178d6f1a",
+      "raw/kaggle_malicious/malicious_phish.csv": "d83ce942075dd63ed4d11560cfdcd9d512caa3d680e292f22cab484e8f074d01"
+    },
+    "source_rows": {
+      "grambeddings": 800000,
+      "kaggle": 651191,
+      "frozen_train": 65065
+    },
+    "invalid": {
+      "ip_only": 30024,
+      "grambeddings": 56,
+      "kaggle": 4113
+    },
+    "excluded": {
+      "frozen_evaluation_group": 52809,
+      "mixed_label_host": 2562
+    },
+    "registered_domain_overlap": {
+      "train/val": 0,
+      "train/test": 0,
+      "val/test": 0
+    },
+    "legacy_test_training_overlap": 0,
+    "split_seed": "reflex-domain-v4",
+    "counts": {
+      "train": {
+        "rows": 457439,
+        "labels": {
+          "0": 304234,
+          "1": 153205
+        },
+        "groups": 373144
+      },
+      "val": {
+        "rows": 125030,
+        "labels": {
+          "0": 80944,
+          "1": 44086
+        },
+        "groups": 106515
+      },
+      "test": {
+        "rows": 54502,
+        "labels": {
+          "0": 38620,
+          "1": 15882
+        },
+        "groups": 50300
+      }
+    },
+    "limitations": [
+      "Historical URL labels projected to hosts, not current threat verification",
+      "Fresh groups are from the same historical sources, not a temporal/external holdout",
+      "Frozen validation is reused; legacy test is a regression set",
+      "No category CSV, Tranco ranking, synthetic labels, LLM labels, paths or content used as training features"
+    ],
+    "category_audit": {
+      "sha256": "033c34e2bb2b6b85a2e4ec6e4cc574a73db0768eebac88b7e39dcec1273b9de2",
+      "unique_hosts": 16222,
+      "mixed_labels": 0,
+      "pure_host_counts": {
+        "0": 8778,
+        "1": 4184,
+        "2": 2160,
+        "3": 1100
+      },
+      "rejected": {},
+      "label_map": {
+        "0": "general",
+        "1": "gambling",
+        "2": "adult",
+        "3": "streaming_separate"
+      },
+      "used_for_training": false,
+      "reason": "Category policy needs separate verified labels/evaluation; never label adult/gambling as phishing"
+    }
+  },
+  "comparisons": {
+    "candidate": {
+      "limitations": [
+        "Fresh domain groups are from historical sources, not a temporal/external holdout",
+        "Legacy test has been reused; no threshold selection used either test",
+        "Sentinels are regression checks, not proof that domain content is safe",
+        "Warm inference timing excludes proxy/network/database; category CSV not trained"
+      ],
+      "models": {
+        "baseline": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.6446185461083996,
+            "roc_auc": 0.754013215896809,
+            "block_false_positives": 20,
+            "block_true_positives": 937,
+            "block_fpr": 0.0005178663904712584,
+            "block_fpr_95pct_upper": 0.0007998157917490112,
+            "block_precision": 0.9791013584117032,
+            "block_recall": 0.0589976073542375,
+            "unknown_fraction": 0.9701295365307695,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.7315565324907267,
+            "roc_auc": 0.8211385690125208,
+            "block_false_positives": 3,
+            "block_true_positives": 893,
+            "block_fpr": 0.0009797517962116264,
+            "block_fpr_95pct_upper": 0.002876828355895032,
+            "block_precision": 0.9966517857142857,
+            "block_recall": 0.21176191605406688,
+            "unknown_fraction": 0.867289462838302,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 0.7142480001220974,
+            "p95": 1.1893851999730032
+          },
+          "model_version": "domain-tfidf-lr-v1-a9045a3e485e",
+          "artifact_bytes": 1949082
+        },
+        "candidate": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.8068327767788338,
+            "roc_auc": 0.80805649148879,
+            "block_false_positives": 108,
+            "block_true_positives": 3668,
+            "block_fpr": 0.0027964785085447955,
+            "block_fpr_95pct_upper": 0.003374902738480567,
+            "block_precision": 0.9713983050847458,
+            "block_recall": 0.2309532804432691,
+            "unknown_fraction": 0.716083813438039,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.652836928149471,
+            "roc_auc": 0.8259329326555588,
+            "block_false_positives": 13,
+            "block_true_positives": 666,
+            "block_fpr": 0.004245591116917048,
+            "block_fpr_95pct_upper": 0.0072507263866052355,
+            "block_precision": 0.9808541973490427,
+            "block_recall": 0.15793217927436567,
+            "unknown_fraction": 0.7250996015936255,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 0.7053559997984848,
+            "p95": 1.0664420002967745
+          },
+          "model_version": "domain-tfidf-lr-v1-538bd11bbcea",
+          "artifact_bytes": 2520192
+        }
+      },
+      "release_gates": {
+        "artifact_enforcement_eligible": false,
+        "fresh_fpr_95_upper_within_budget": false,
+        "legacy_fpr_95_upper_within_budget": false,
+        "fresh_recall_improved": true,
+        "legacy_recall_not_regressed": false,
+        "sentinels_not_blocked": true,
+        "warm_p95_under_10ms": true,
+        "artifact_under_10MiB": true
+      },
+      "promotable": false
+    },
+    "structure": {
+      "limitations": [
+        "Fresh domain groups are from historical sources, not a temporal/external holdout",
+        "Legacy test has been reused; no threshold selection used either test",
+        "Sentinels are regression checks, not proof that domain content is safe",
+        "Warm inference timing excludes proxy/network/database; category CSV not trained"
+      ],
+      "models": {
+        "baseline": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.6446185461083996,
+            "roc_auc": 0.754013215896809,
+            "block_false_positives": 20,
+            "block_true_positives": 937,
+            "block_fpr": 0.0005178663904712584,
+            "block_fpr_95pct_upper": 0.0007998157917490112,
+            "block_precision": 0.9791013584117032,
+            "block_recall": 0.0589976073542375,
+            "unknown_fraction": 0.9701295365307695,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.7315565324907267,
+            "roc_auc": 0.8211385690125208,
+            "block_false_positives": 3,
+            "block_true_positives": 893,
+            "block_fpr": 0.0009797517962116264,
+            "block_fpr_95pct_upper": 0.002876828355895032,
+            "block_precision": 0.9966517857142857,
+            "block_recall": 0.21176191605406688,
+            "unknown_fraction": 0.867289462838302,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 0.6825084999491082,
+            "p95": 0.9960770002862773
+          },
+          "model_version": "domain-tfidf-lr-v1-a9045a3e485e",
+          "artifact_bytes": 1949082
+        },
+        "candidate": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.8074015632453855,
+            "roc_auc": 0.8086086181875641,
+            "block_false_positives": 48,
+            "block_true_positives": 2856,
+            "block_fpr": 0.0012428793371310203,
+            "block_fpr_95pct_upper": 0.0016473477046995216,
+            "block_precision": 0.9834710743801653,
+            "block_recall": 0.17982621836040802,
+            "unknown_fraction": 0.7267072767971817,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.6834730045335898,
+            "roc_auc": 0.8390824857923986,
+            "block_false_positives": 6,
+            "block_true_positives": 494,
+            "block_fpr": 0.001959503592423253,
+            "block_fpr_95pct_upper": 0.004268783697984899,
+            "block_precision": 0.988,
+            "block_recall": 0.11714488973203699,
+            "unknown_fraction": 0.7461189723863167,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 1.7141784999239462,
+            "p95": 2.6594950997605338
+          },
+          "model_version": "domain-tfidf-lr-v1-5851074ed5a2",
+          "artifact_bytes": 2521133
+        }
+      },
+      "release_gates": {
+        "artifact_enforcement_eligible": true,
+        "fresh_fpr_95_upper_within_budget": true,
+        "legacy_fpr_95_upper_within_budget": false,
+        "fresh_recall_improved": true,
+        "legacy_recall_not_regressed": false,
+        "sentinels_not_blocked": true,
+        "warm_p95_under_10ms": true,
+        "artifact_under_10MiB": true
+      },
+      "promotable": false
+    },
+    "transfer": {
+      "limitations": [
+        "Fresh domain groups are from historical sources, not a temporal/external holdout",
+        "Legacy test has been reused; no threshold selection used either test",
+        "Sentinels are regression checks, not proof that domain content is safe",
+        "Warm inference timing excludes proxy/network/database; category CSV not trained"
+      ],
+      "models": {
+        "baseline": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.6446185461083996,
+            "roc_auc": 0.754013215896809,
+            "block_false_positives": 20,
+            "block_true_positives": 937,
+            "block_fpr": 0.0005178663904712584,
+            "block_fpr_95pct_upper": 0.0007998157917490112,
+            "block_precision": 0.9791013584117032,
+            "block_recall": 0.0589976073542375,
+            "unknown_fraction": 0.9701295365307695,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.7315565324907267,
+            "roc_auc": 0.8211385690125208,
+            "block_false_positives": 3,
+            "block_true_positives": 893,
+            "block_fpr": 0.0009797517962116264,
+            "block_fpr_95pct_upper": 0.002876828355895032,
+            "block_precision": 0.9966517857142857,
+            "block_recall": 0.21176191605406688,
+            "unknown_fraction": 0.867289462838302,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 0.7558254999366909,
+            "p95": 1.1542285502628147
+          },
+          "model_version": "domain-tfidf-lr-v1-a9045a3e485e",
+          "artifact_bytes": 1949082
+        },
+        "candidate": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.8061539026090786,
+            "roc_auc": 0.8068110785778937,
+            "block_false_positives": 42,
+            "block_true_positives": 2715,
+            "block_fpr": 0.0010875194199896426,
+            "block_fpr_95pct_upper": 0.0014695749174694246,
+            "block_precision": 0.984766050054407,
+            "block_recall": 0.17094824329429542,
+            "unknown_fraction": 0.7328538402260467,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.6935018546503641,
+            "roc_auc": 0.8413189313201039,
+            "block_false_positives": 6,
+            "block_true_positives": 477,
+            "block_fpr": 0.001959503592423253,
+            "block_fpr_95pct_upper": 0.004268783697984899,
+            "block_precision": 0.9875776397515528,
+            "block_recall": 0.1131135878586673,
+            "unknown_fraction": 0.7512020881989284,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 2.2117705002528965,
+            "p95": 3.0095991499365473
+          },
+          "model_version": "domain-tfidf-lr-v1-4010e45fe78f",
+          "artifact_bytes": 4468900
+        }
+      },
+      "release_gates": {
+        "artifact_enforcement_eligible": true,
+        "fresh_fpr_95_upper_within_budget": true,
+        "legacy_fpr_95_upper_within_budget": false,
+        "fresh_recall_improved": true,
+        "legacy_recall_not_regressed": false,
+        "sentinels_not_blocked": true,
+        "warm_p95_under_10ms": true,
+        "artifact_under_10MiB": true
+      },
+      "promotable": false
+    },
+    "boosting": {
+      "limitations": [
+        "Fresh domain groups are from historical sources, not a temporal/external holdout",
+        "Legacy test has been reused; no threshold selection used either test",
+        "Sentinels are regression checks, not proof that domain content is safe",
+        "Warm inference timing excludes proxy/network/database; category CSV not trained"
+      ],
+      "models": {
+        "baseline": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.6446185461083996,
+            "roc_auc": 0.754013215896809,
+            "block_false_positives": 20,
+            "block_true_positives": 937,
+            "block_fpr": 0.0005178663904712584,
+            "block_fpr_95pct_upper": 0.0007998157917490112,
+            "block_precision": 0.9791013584117032,
+            "block_recall": 0.0589976073542375,
+            "unknown_fraction": 0.9701295365307695,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.7315565324907267,
+            "roc_auc": 0.8211385690125208,
+            "block_false_positives": 3,
+            "block_true_positives": 893,
+            "block_fpr": 0.0009797517962116264,
+            "block_fpr_95pct_upper": 0.002876828355895032,
+            "block_precision": 0.9966517857142857,
+            "block_recall": 0.21176191605406688,
+            "unknown_fraction": 0.867289462838302,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 0.9326489998784382,
+            "p95": 1.63989029977074
+          },
+          "model_version": "domain-tfidf-lr-v1-a9045a3e485e",
+          "artifact_bytes": 1949082
+        },
+        "candidate": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.7881729110858318,
+            "roc_auc": 0.7790187256860881,
+            "block_false_positives": 65,
+            "block_true_positives": 2328,
+            "block_fpr": 0.0016830657690315898,
+            "block_fpr_95pct_upper": 0.002144424996434039,
+            "block_precision": 0.9728374425407439,
+            "block_recall": 0.14658103513411408,
+            "unknown_fraction": 0.8208506109867528,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.6904794614644869,
+            "roc_auc": 0.8207049953479021,
+            "block_false_positives": 3,
+            "block_true_positives": 475,
+            "block_fpr": 0.0009797517962116264,
+            "block_fpr_95pct_upper": 0.002876828355895032,
+            "block_precision": 0.9937238493723849,
+            "block_recall": 0.11263931705003558,
+            "unknown_fraction": 0.8245638137106746,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 3.7680039997667336,
+            "p95": 5.459070999609138
+          },
+          "model_version": "domain-hgb-v4-c37b6dc4ed40",
+          "artifact_bytes": 2239406
+        }
+      },
+      "release_gates": {
+        "artifact_enforcement_eligible": true,
+        "fresh_fpr_95_upper_within_budget": true,
+        "legacy_fpr_95_upper_within_budget": true,
+        "fresh_recall_improved": true,
+        "legacy_recall_not_regressed": false,
+        "sentinels_not_blocked": true,
+        "warm_p95_under_10ms": true,
+        "artifact_under_10MiB": true
+      },
+      "promotable": false
+    },
+    "svm": {
+      "limitations": [
+        "Fresh domain groups are from historical sources, not a temporal/external holdout",
+        "Legacy test has been reused; no threshold selection used either test",
+        "Sentinels are regression checks, not proof that domain content is safe",
+        "Warm inference timing excludes proxy/network/database; category CSV not trained"
+      ],
+      "models": {
+        "baseline": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.6446185461083996,
+            "roc_auc": 0.754013215896809,
+            "block_false_positives": 20,
+            "block_true_positives": 937,
+            "block_fpr": 0.0005178663904712584,
+            "block_fpr_95pct_upper": 0.0007998157917490112,
+            "block_precision": 0.9791013584117032,
+            "block_recall": 0.0589976073542375,
+            "unknown_fraction": 0.9701295365307695,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.7315565324907267,
+            "roc_auc": 0.8211385690125208,
+            "block_false_positives": 3,
+            "block_true_positives": 893,
+            "block_fpr": 0.0009797517962116264,
+            "block_fpr_95pct_upper": 0.002876828355895032,
+            "block_precision": 0.9966517857142857,
+            "block_recall": 0.21176191605406688,
+            "unknown_fraction": 0.867289462838302,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 0.702369999999064,
+            "p95": 0.9694463500636629
+          },
+          "model_version": "domain-tfidf-lr-v1-a9045a3e485e",
+          "artifact_bytes": 1949082
+        },
+        "candidate": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.8070162562841731,
+            "roc_auc": 0.8103344482036114,
+            "block_false_positives": 40,
+            "block_true_positives": 2392,
+            "block_fpr": 0.0010357327809425167,
+            "block_fpr_95pct_upper": 0.0014099714983456517,
+            "block_precision": 0.9835526315789473,
+            "block_recall": 0.15061075431305881,
+            "unknown_fraction": 0.7325786209680378,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.653111691166369,
+            "roc_auc": 0.8284777626313325,
+            "block_false_positives": 6,
+            "block_true_positives": 378,
+            "block_fpr": 0.001959503592423253,
+            "block_fpr_95pct_upper": 0.004268783697984899,
+            "block_precision": 0.984375,
+            "block_recall": 0.08963718283139673,
+            "unknown_fraction": 0.76026926775656,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 0.7013829999777954,
+            "p95": 0.9121508998759962
+          },
+          "model_version": "domain-svm-v4-ea36cfce77eb",
+          "artifact_bytes": 2517410
+        }
+      },
+      "release_gates": {
+        "artifact_enforcement_eligible": true,
+        "fresh_fpr_95_upper_within_budget": true,
+        "legacy_fpr_95_upper_within_budget": false,
+        "fresh_recall_improved": true,
+        "legacy_recall_not_regressed": false,
+        "sentinels_not_blocked": true,
+        "warm_p95_under_10ms": true,
+        "artifact_under_10MiB": true
+      },
+      "promotable": false
+    },
+    "ensemble": {
+      "limitations": [
+        "Fresh domain groups are from historical sources, not a temporal/external holdout",
+        "Legacy test has been reused; no threshold selection used either test",
+        "Sentinels are regression checks, not proof that domain content is safe",
+        "Warm inference timing excludes proxy/network/database; category CSV not trained"
+      ],
+      "models": {
+        "baseline": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.6446185461083996,
+            "roc_auc": 0.754013215896809,
+            "block_false_positives": 20,
+            "block_true_positives": 937,
+            "block_fpr": 0.0005178663904712584,
+            "block_fpr_95pct_upper": 0.0007998157917490112,
+            "block_precision": 0.9791013584117032,
+            "block_recall": 0.0589976073542375,
+            "unknown_fraction": 0.9701295365307695,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.7315565324907267,
+            "roc_auc": 0.8211385690125208,
+            "block_false_positives": 3,
+            "block_true_positives": 893,
+            "block_fpr": 0.0009797517962116264,
+            "block_fpr_95pct_upper": 0.002876828355895032,
+            "block_precision": 0.9966517857142857,
+            "block_recall": 0.21176191605406688,
+            "unknown_fraction": 0.867289462838302,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 0.7494900000892812,
+            "p95": 1.1671381501628275
+          },
+          "model_version": "domain-tfidf-lr-v1-a9045a3e485e",
+          "artifact_bytes": 1949082
+        },
+        "candidate": {
+          "fresh_same_source_test": {
+            "rows": 54502,
+            "unique_domains": 54222,
+            "benign": 38620,
+            "malicious": 15882,
+            "binary_accuracy_at_0_5": 0.6446552420094676,
+            "roc_auc": 0.7559382762737957,
+            "block_false_positives": 44,
+            "block_true_positives": 1945,
+            "block_fpr": 0.0011393060590367686,
+            "block_fpr_95pct_upper": 0.0015289976906143555,
+            "block_precision": 0.9778783308195073,
+            "block_recall": 0.1224656844226168,
+            "unknown_fraction": 0.9513962790356317,
+            "generated_hostname_abstentions": 55
+          },
+          "legacy_reused_test": {
+            "rows": 7279,
+            "unique_domains": 7275,
+            "benign": 3062,
+            "malicious": 4217,
+            "binary_accuracy_at_0_5": 0.7316939139991757,
+            "roc_auc": 0.8224569086557831,
+            "block_false_positives": 5,
+            "block_true_positives": 1111,
+            "block_fpr": 0.0016329196603527107,
+            "block_fpr_95pct_upper": 0.0038171091070796875,
+            "block_precision": 0.9955197132616488,
+            "block_recall": 0.2634574341949253,
+            "unknown_fraction": 0.8372029124879791,
+            "generated_hostname_abstentions": 11
+          },
+          "sentinel_blocked": [],
+          "warm_inference_ms": {
+            "p50": 4.620770999963497,
+            "p95": 8.324117650022338
+          },
+          "model_version": "domain-ensemble-v4-103801cbd10d",
+          "artifact_bytes": 4189168
+        }
+      },
+      "release_gates": {
+        "artifact_enforcement_eligible": true,
+        "fresh_fpr_95_upper_within_budget": true,
+        "legacy_fpr_95_upper_within_budget": false,
+        "fresh_recall_improved": true,
+        "legacy_recall_not_regressed": true,
+        "sentinels_not_blocked": true,
+        "warm_p95_under_10ms": true,
+        "artifact_under_10MiB": true
+      },
+      "promotable": false
+    }
+  }
+}

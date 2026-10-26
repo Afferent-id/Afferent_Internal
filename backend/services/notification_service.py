@@ -30,7 +30,7 @@ def security_inbox():
         reports = [dict(row) for row in conn.execute('''SELECT * FROM employee_url_reports
             WHERE report_type='url' ORDER BY created_at DESC, id LIMIT 100''').fetchall()]
         audit = [dict(row) for row in conn.execute('SELECT * FROM notification_audit ORDER BY id DESC LIMIT 30').fetchall()]
-    # Read-only report status; GRC can review but cannot mutate proxy policies.
+    # Evidence does not mutate proxy policies; only an explicit SOC action does.
     from services.report_service import _serialized
     reports = [_serialized(report) for report in reports]
     return {'threshold': threshold, 'scoreScale': 200, 'employees': employees,
@@ -40,8 +40,8 @@ def security_inbox():
 
 
 def queue_manual_warning(identity, account_id, reason, request_id):
-    if identity.role not in {'soc', 'grc'}:
-        raise PermissionError('Hanya SOC/GRC yang dapat mengirim warning')
+    if identity.role != 'soc':
+        raise PermissionError('Only SOC can send a baseline warning')
     if os.environ.get('EDUCATION_EMAIL_ENABLED', 'true').lower() != 'true':
         raise ValueError('Pengiriman warning sedang dinonaktifkan')
     if not isinstance(account_id, int) or isinstance(account_id, bool):
@@ -66,11 +66,11 @@ def queue_manual_warning(identity, account_id, reason, request_id):
             raise ValueError('Warning masih antre atau cooldown belum selesai')
         text = (f"Skor pembelajaran Anda {row['points']}/200, di bawah baseline {threshold}/200. "
                 f"Pesan tim {identity.role.upper()}: {reason.strip()}\n\n"
-                'Lanjutkan training, Spot the Fake, dan kuis harian di dashboard AFFERENT. '
+                'Lanjutkan training, Spot the Fake, dan kuis harian di dashboard Afferent Reflex. '
                 'Periksa domain, jangan bagikan OTP/password, dan laporkan link meragukan.')
         outbox = conn.execute('''INSERT INTO notification_outbox
             (dedupe_key, recipient, subject, text_body) VALUES (?, ?, ?, ?)''',
-            (f"education:{row['email']}:{now // cooldown}", row['email'], 'AFFERENT — warning edukasi keamanan', text))
+            (f"education:{row['email']}:{now // cooldown}", row['email'], 'Afferent Reflex — warning edukasi keamanan', text))
         conn.execute('''INSERT INTO notification_audit
             (actor_email, actor_role, recipient, score, reason, request_id, outbox_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)''',
@@ -103,8 +103,8 @@ def queue_education():
                 f"Tercatat {row['click_count']} klik simulasi dan {row['viewed_training_count']} training selesai. "
                 'Luangkan waktu untuk training, Spot the Fake, dan kuis harian. '
                 'Periksa domain sebelum membuka link, jangan bagikan OTP/password, '
-                'dan laporkan link yang meragukan melalui dashboard AFFERENT.')
-        enqueue(row['email'], 'AFFERENT — edukasi keamanan personal', text,
+                'dan laporkan link yang meragukan melalui dashboard Afferent Reflex.')
+        enqueue(row['email'], 'Afferent Reflex — edukasi keamanan personal', text,
                 f"education:{row['email']}:{int(time.time()) // cooldown}")
 
 
@@ -124,12 +124,17 @@ def deliver_one():
                 ON lower(u.email)=lower(a.email) WHERE a.email=? AND a.is_active=1
                 AND a.role='employee' AND u.points < ?''',
                 (row['recipient'], int(os.environ.get('EDUCATION_SCORE_THRESHOLD', '60')))).fetchone()
+            if row['dedupe_key'].startswith('training:exam:'):
+                eligible = conn.execute('''SELECT 1 FROM learning_exams e JOIN employee_accounts a
+                    ON a.id=e.account_id WHERE e.id=? AND e.status='completed' AND e.needs_training=1
+                    AND a.email=? AND a.is_active=1 AND a.role='employee' ''',
+                    (row['dedupe_key'].removeprefix('training:exam:'), row['recipient'])).fetchone()
         if not eligible:
             with closing(database.get_connection()) as conn, conn:
                 conn.execute("UPDATE notification_outbox SET sent_at=CURRENT_TIMESTAMP, last_error='skipped_not_eligible', lease_until=0 WHERE id=?", (row['id'],))
             return True
         EmailService().send(to_address=row['recipient'], subject=row['subject'], text=row['text_body'],
-                            html='<div style="font-family:Poppins,Arial,sans-serif;line-height:1.7"><h2>AFFERENT Security</h2><p>' + html.escape(row['text_body']) + '</p></div>')
+                            html='<div style="font-family:Poppins,Arial,sans-serif;line-height:1.7"><h2>Afferent Reflex Security</h2><p>' + html.escape(row['text_body']) + '</p></div>')
     except Exception as exc:
         # SMTP acceptance followed by a crash may replay a message: at-least-once,
         # not exactly-once. No tokens, provider responses, or recipient logged.

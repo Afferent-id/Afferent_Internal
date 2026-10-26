@@ -21,18 +21,8 @@ def _request_id() -> str:
 @proxy_bp.route('/api/proxy/second-opinion', methods=['GET', 'POST'])
 @require_roles('soc')
 def second_opinion():
-    from services import local_llm_service
-    try:
-        if request.method == 'GET':
-            return jsonify(local_llm_service.get_review(request.args.get('domain', '')))
-        body = request.get_json(silent=True)
-        if not isinstance(body, dict):
-            return jsonify({'error': 'A JSON object is required.'}), 400
-        return jsonify(local_llm_service.queue_review(current_identity(), body.get('domain', ''), _request_id())), 202
-    except (ValueError, TypeError, proxy_service.ProxyError) as exc:
-        return jsonify({'error': str(exc)}), 400
-    except Exception:
-        return jsonify({'error': 'Local review unavailable.'}), 503
+    return jsonify({'error': 'Local LLM reviews have been retired. Live traffic uses the local ML model.',
+                    'code': 'LOCAL_LLM_RETIRED'}), 410
 
 
 def _client_ip() -> str:
@@ -51,7 +41,7 @@ def _error(exc: proxy_service.ProxyError):
 @proxy_bp.route("/go", methods=["GET", "POST"])
 def retired_manual_proxy():
     return jsonify({
-        "error": "Form proxy manual telah dinonaktifkan. Gunakan AFFERENT Centralized Proxy pada level perangkat.",
+        "error": "Form proxy manual telah dinonaktifkan. Gunakan Afferent Reflex Centralized Proxy pada level perangkat.",
         "code": "MANUAL_PROXY_RETIRED",
     }), 410
 
@@ -61,14 +51,14 @@ def blocked():
     domain = request.args.get("domain") or request.args.get("url", "")
     threat_data = {
         "url": domain,
-        "engine": request.args.get("source", "AFFERENT Security Gateway"),
+        "engine": request.args.get("source", "Afferent Reflex Security Gateway"),
         "threat_type": "Malicious Domain",
         "cache_id": request.args.get("requestId", "PROXY-BLOCK"),
         "threat_score": 100,
         "severity": "critical",
         "verdict": "malicious",
         "confidence": 1,
-        "reason": request.args.get("reason", "Akses ditolak oleh kebijakan keamanan AFFERENT"),
+        "reason": request.args.get("reason", "Akses ditolak oleh kebijakan keamanan Afferent Reflex"),
     }
     return render_template("blocked.html", threat=threat_data)
 
@@ -105,7 +95,7 @@ def device_status():
 
 
 @proxy_bp.route("/api/proxy/decision", methods=["POST"])
-@require_roles("soc", "ciso", allow_service=True)
+@require_roles("soc", allow_service=True)
 def proxy_decision():
     """Synchronous Squid external-ACL decision endpoint."""
     body = request.get_json(silent=True) or {}
@@ -144,7 +134,7 @@ def ml_verdict_webhook():
 
 
 @proxy_bp.route("/api/proxy/enforcement/check", methods=["POST"])
-@require_roles(allow_service=True)
+@require_roles('phishing_admin', allow_service=True)
 def enforcement_check():
     """Internal controller reconciliation; not exposed through dashboard BFF."""
     body = request.get_json(silent=True)
@@ -165,25 +155,25 @@ def _limit() -> int:
 
 
 @proxy_bp.route("/api/proxy/alerts", methods=["GET"])
-@require_roles("soc", "ciso")
+@require_roles("soc")
 def alerts():
     return jsonify({"alerts": proxy_service.list_alerts(_limit())})
 
 
 @proxy_bp.route("/api/proxy/verdicts", methods=["GET"])
-@require_roles("soc", "ciso")
+@require_roles("soc")
 def verdicts():
     return jsonify({"verdicts": proxy_service.list_verdicts(_limit())})
 
 
 @proxy_bp.route("/api/proxy/traffic", methods=["GET"])
-@require_roles("soc", "ciso")
+@require_roles("soc")
 def traffic():
     return jsonify({"events": proxy_service.list_traffic(_limit())})
 
 
 @proxy_bp.route("/api/proxy/audit", methods=["GET"])
-@require_roles("soc", "ciso")
+@require_roles("soc")
 def audit_log():
     return jsonify({"audit": proxy_service.list_audit(_limit())})
 
@@ -227,7 +217,7 @@ def alert_decision(alert_id: str):
 
 
 @proxy_bp.route("/api/proxy/alerts/stream", methods=["GET"])
-@require_roles("soc", "ciso")
+@require_roles("soc")
 def alert_stream():
     @stream_with_context
     def generate():
@@ -251,7 +241,7 @@ def alert_stream():
 
 
 @proxy_bp.route("/api/proxy/config", methods=["GET"])
-@require_roles("employee", "soc", "ciso")
+@require_roles("employee", "soc")
 def proxy_config():
     return jsonify({
         "proxyUrl": os.environ.get("PUBLIC_PROXY_URL", "http://127.0.0.1:3128"),
@@ -266,7 +256,7 @@ def proxy_config():
 
 @proxy_bp.route("/api/proxy/ca.crt", methods=["GET"])
 def download_ca_cert():
-    """Public endpoint to download the AFFERENT Proxy CA certificate for client installation."""
+    """Public endpoint to download the Afferent Reflex Proxy CA certificate for client installation."""
     from pathlib import Path
     ca_path = Path("/app/../proxy/ssl/afferent-proxy-ca.crt")
     if not ca_path.exists():

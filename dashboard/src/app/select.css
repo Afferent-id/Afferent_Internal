@@ -1,0 +1,66 @@
+/* One surface per control. Labels only provide layout and an accessible name. */
+label.filter-select { display:block; padding:0; border:0; background:transparent; box-shadow:none; }
+
+/* Native selection and keyboard behavior remain available in every browser. */
+:is(.filter-select, .field, .ops-filter) > select:where(:not([multiple]):not([size])) {
+  appearance:none;
+  min-width:0;
+  max-width:100%;
+  min-height:40px;
+  padding:9px 38px 9px 12px;
+  border:1px solid var(--border-control);
+  border-radius:12px;
+  background:var(--bg-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23687890' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 12px center / 16px no-repeat;
+  color:var(--text-primary);
+  font:inherit;
+  font-size:var(--text-sm);
+  font-weight:400;
+  line-height:1.5;
+  cursor:pointer;
+}
+:is(.filter-select, .field, .ops-filter) > select:where(:not([multiple]):not([size])):hover:where(:not(:disabled):not([aria-invalid="true"])) { border-color:var(--accent); }
+:is(.filter-select, .field, .ops-filter) > select:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+:is(.filter-select, .field, .ops-filter) > select:disabled { opacity:.55; cursor:not-allowed; }
+.ops-filter > select:where(:not([multiple]):not([size])) { flex:0 1 240px; width:240px; }
+
+/* Chromium can also theme the native options popup; other browsers keep their picker. */
+@supports (appearance:base-select) {
+  :is(.filter-select, .field, .ops-filter) > select:where(:not([multiple]):not([size])),
+  :is(.filter-select, .field, .ops-filter) > select:where(:not([multiple]):not([size]))::picker(select) { appearance:base-select; }
+  :is(.filter-select, .field, .ops-filter) > select:where(:not([multiple]):not([size])) { background-image:none; padding-inline:12px; align-items:center; gap:12px; }
+  :is(.filter-select, .field, .ops-filter) > select::picker-icon {
+    content:"";
+    flex:none;
+    width:16px;
+    height:16px;
+    margin-inline-start:auto;
+    background:var(--text-muted);
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  :is(.filter-select, .field, .ops-filter) > select:open:where(:not([aria-invalid="true"])) { border-color:var(--accent); }
+  :is(.filter-select, .field, .ops-filter) > select:open::picker-icon { rotate:180deg; }
+  :is(.filter-select, .field, .ops-filter) > select::picker(select) {
+    margin-block-start:6px;
+    padding:6px;
+    max-height:min(340px, 60dvh);
+    overflow:auto;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:var(--bg-surface);
+    color:var(--text-primary);
+    font:inherit;
+    font-size:var(--text-sm);
+    box-shadow:var(--shadow-md);
+  }
+  :is(.filter-select, .field, .ops-filter) > select option { display:flex; align-items:center; gap:10px; min-height:38px; padding:8px 10px; border-radius:8px; color:var(--text-primary); font-weight:400; line-height:1.5; white-space:normal; cursor:pointer; }
+  :is(.filter-select, .field, .ops-filter) > select option:checked { background:var(--pop-blue-bg); font-weight:500; }
+  :is(.filter-select, .field, .ops-filter) > select option:hover:not(:disabled) { background:var(--bg-hover); }
+  :is(.filter-select, .field, .ops-filter) > select option:focus-visible { outline:2px solid var(--focus-ring); outline-offset:-2px; }
+  :is(.filter-select, .field, .ops-filter) > select option::checkmark { color:var(--accent); }
+  :is(.filter-select, .field, .ops-filter) > select option:disabled { color:var(--text-muted); cursor:not-allowed; }
+}
+
+@media (forced-colors:active) {
+  :is(.filter-select, .field, .ops-filter) > select { appearance:auto; background-image:none; }
+  :is(.filter-select, .field, .ops-filter) > select::picker(select) { appearance:auto; }
+}

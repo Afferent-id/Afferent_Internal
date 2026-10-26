@@ -20,7 +20,7 @@ import database
 from services.email_service import EmailDeliveryError, EmailService
 
 
-VALID_ROLES = {"employee", "phishing_admin", "soc", "grc", "ciso"}
+VALID_ROLES = {"employee", "phishing_admin", "soc"}
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 PASSWORD_HASHER = PasswordHasher(
     time_cost=int(os.environ.get("ARGON2_TIME_COST", "3")),
@@ -389,7 +389,7 @@ def request_login(*, email: str, password: str, ip_address: str, request_id: str
             """,
             (normalized,),
         ).fetchone()
-        if not account or not account["is_active"] or not _verify_password(account["password_hash"], password or ""):
+        if not account or not account["is_active"] or account['role'] not in VALID_ROLES or not _verify_password(account["password_hash"], password or ""):
             _audit(
                 conn,
                 email=normalized or "invalid",
@@ -496,12 +496,12 @@ def resend_otp(*, challenge_id: str, ip_address: str, request_id: str) -> dict[s
     try:
         row = conn.execute(
             """
-            SELECT c.*, a.email, a.is_active FROM otp_challenges c
+            SELECT c.*, a.email, a.is_active, a.role FROM otp_challenges c
             JOIN employee_accounts a ON a.id = c.account_id WHERE c.id = ?
             """,
             (challenge_id,),
         ).fetchone()
-        if not row or row["used_at"] or not row["is_active"]:
+        if not row or row["used_at"] or not row["is_active"] or row['role'] not in VALID_ROLES:
             raise AuthError("INVALID_CHALLENGE", "Sesi OTP tidak valid. Silakan masuk kembali.", 400)
         _rate_limit(conn, email=row["email"], ip_hash=ip_digest)
         cooldown = int(os.environ.get("OTP_RESEND_COOLDOWN_SECONDS", "60"))
@@ -578,7 +578,7 @@ def verify_login_otp(
             """,
             (challenge_id,),
         ).fetchone()
-        if not row or row["used_at"] or not row["is_active"]:
+        if not row or row["used_at"] or not row["is_active"] or row['role'] not in VALID_ROLES:
             raise AuthError("INVALID_CHALLENGE", "Sesi OTP tidak valid. Silakan masuk kembali.", 400)
         if _parse_db_timestamp(row["expires_at"]) <= _utcnow():
             conn.execute("UPDATE otp_challenges SET used_at = CURRENT_TIMESTAMP WHERE id = ?", (challenge_id,))
@@ -658,7 +658,7 @@ def get_identity(raw_token: str) -> AuthIdentity | None:
             """,
             (_session_hash(raw_token),),
         ).fetchone()
-        if not row or row["revoked_at"] or not row["is_active"]:
+        if not row or row["revoked_at"] or not row["is_active"] or row['role'] not in VALID_ROLES:
             return None
         if _parse_db_timestamp(row["expires_at"]) <= _utcnow():
             return None

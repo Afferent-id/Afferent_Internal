@@ -122,6 +122,7 @@ CREATE INDEX IF NOT EXISTS idx_proxy_traffic_account
     ON proxy_traffic_events(account_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_proxy_alert_status_sequence
     ON proxy_alerts(status, sequence DESC);
+CREATE INDEX IF NOT EXISTS idx_proxy_audit_request ON proxy_decision_audit(request_id);
 
 CREATE OR REPLACE FUNCTION reject_proxy_audit_mutation()
 RETURNS trigger AS $$
@@ -665,6 +666,17 @@ def apply_manual_decision(
 ) -> tuple[dict[str, Any] | None, dict[str, Any], dict[str, Any] | None]:
     """Atomically persist the SOC verdict, alert resolution, and audit row."""
     with connection() as conn:
+        if audit['request_id'].startswith('incident:'):
+            # SQLite and PostgreSQL cannot share a transaction. A retry after
+            # PG commit/SQLite failure must never mint another policy/audit.
+            conn.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', (audit['request_id'],))
+            previous = conn.execute('SELECT * FROM proxy_decision_audit WHERE request_id=%s ORDER BY id LIMIT 1',
+                                    (audit['request_id'],)).fetchone()
+            if previous:
+                if any(previous[key] != audit[key] for key in ('domain', 'action', 'reason', 'actor_email')):
+                    raise ValueError('This incident decision was already applied with different details.')
+                current = conn.execute("SELECT * FROM proxy_url_verdicts WHERE domain=%s AND source='soc'", (verdict['domain'],)).fetchone()
+                return previous['before_state'], dict(current), None
         before_row = conn.execute(
             """
             SELECT * FROM proxy_url_verdicts
@@ -753,6 +765,15 @@ def record_ml_event(event_id: str, domain: str, payload: dict[str, Any]) -> bool
             (event_id, domain, json.dumps(payload, separators=(",", ":"))),
         ).fetchone()
     return bool(row)
+
+
+def get_historical_report_resolution(alert_id):
+    with connection() as conn:
+        row = conn.execute('''SELECT p.status,p.resolved_by,p.resolved_at,
+            d.actor_email,d.actor_role,d.reason,d.created_at AS decision_at FROM proxy_alerts p
+            LEFT JOIN LATERAL (SELECT actor_email,actor_role,reason,created_at FROM proxy_decision_audit
+                WHERE alert_id=p.id ORDER BY id DESC LIMIT 1) d ON TRUE WHERE p.id=%s''', (alert_id,)).fetchone()
+    return dict(row) if row else None
 
 
 def publish_alert(payload: dict[str, Any]) -> None:

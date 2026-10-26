@@ -44,7 +44,7 @@ function BarLabel({ x, y, width, height, value, t }: { x?: number | string; y?: 
 const nameOf = (u: BehaviorScore, fallback: string) =>
   u.userName || (u.email ? u.email.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : fallback);
 
-export default function OverviewSection({ stats, incidents, summaries, scores, cache, onRefreshSummary, incidentsState, scoresState, summariesState }: OverviewSectionProps) {
+export default function OverviewSection({ stats, incidents, summaries, scores, onRefreshSummary, incidentsState, scoresState, summariesState }: OverviewSectionProps) {
   const { t, lang } = useI18n();
   const now = useNow();
 
@@ -68,12 +68,11 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
   ];
 
   const total = stats?.totalIncidents ?? incidents.length;
-  const open = stats?.openIncidents ?? incidents.filter(i => i.status !== 'resolved').length;
+  const open = stats?.openIncidents ?? incidents.filter(i => !['closed', 'resolved'].includes(i.status)).length;
   const resolved = Math.max(0, total - open);
   const critical = stats?.criticalIncidents ?? severity.critical;
   const avg = stats?.avgBehaviorScore ?? (scores.length > 0 ? Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length) : 0);
   const posture = avg >= 80 ? t('ov.posture.good') : avg >= 50 ? t('ov.posture.moderate') : t('ov.posture.high');
-  const blocked = stats?.blockedUrls ?? cache.length;
 
   const best = [...scores].sort((a, b) => b.score - a.score || b.totalPoints - a.totalPoints).slice(0, 3);
   const worst = [...scores].sort((a, b) => a.score - b.score || a.totalPoints - b.totalPoints).slice(0, 3);
@@ -96,8 +95,8 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
       <div className="exec-kpis">
         <KpiCard label={t('ov.kpi.total')} value={total} trend={{ direction: 'flat', text: t('ov.kpi.total.trend', { n: critical }) }} />
         <KpiCard label={t('ov.kpi.open')} value={open} trend={{ direction: 'flat', text: t('ov.kpi.open.trend', { n: resolved }) }} />
-        <KpiCard label={t('ov.kpi.blocked')} value={blocked} trend={{ direction: 'flat', text: t('ov.kpi.blocked.trend', { n: blocked }) }} />
-        <KpiCard label={t('ov.kpi.score')} value={avg || 0} unit="/100" trend={{ direction: 'flat', text: posture }} />
+        <KpiCard label={t('ov.kpi.resolved')} value={resolved} hint={t('ov.kpi.resolved.hint')} />
+        <KpiCard label={t('ov.kpi.score')} value={scores.length ? avg : '—'} unit="/100" trend={scores.length ? { direction: 'flat', text: posture } : undefined} />
       </div>
 
       <div className="exec-grid">
@@ -126,7 +125,7 @@ export default function OverviewSection({ stats, incidents, summaries, scores, c
       </div>
 
       <div className="exec-grid">
-        <section className="exec-card" aria-labelledby="ov-risk">
+        <section className="exec-card exec-risk-card" aria-labelledby="ov-risk">
           <div className="ops-head">
             <h3 id="ov-risk">{t('ov.risk.title')}</h3>
             {onRefreshSummary && <button type="button" className="btn" onClick={onRefreshSummary}><RefreshCw size={14} aria-hidden="true" /> {t('ov.risk.refresh')}</button>}

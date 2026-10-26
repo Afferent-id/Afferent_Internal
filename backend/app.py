@@ -81,6 +81,8 @@ if env_flag('PROXY_FEATURE_ENABLED'):
     from services.proxy_store import init_proxy_runtime
     validate_runtime_configuration()
     init_proxy_runtime()
+    from services.incident_service import restore_historical_resolutions
+    restore_historical_resolutions()
     if env_flag('ML_LOCAL_ENABLED', default=True):
         from services.domain_scanner import warmup as warmup_domain_ml
         warmup_domain_ml()
@@ -96,6 +98,8 @@ ai_cache.init_cache_table()
 
 # Register blueprints
 from routes.auth import auth_bp
+from routes.exam import exam_bp
+from routes.simulation_entry import simulation_entry_bp
 from routes.events import events_bp
 from routes.incidents import incidents_bp
 from routes.admin_api import admin_api_bp
@@ -103,6 +107,8 @@ from gamification_routes import gamification_bp
 from routes.ai_routes import ai_bp  # AI Behavioral Engine
 
 app.register_blueprint(auth_bp)
+app.register_blueprint(exam_bp)
+app.register_blueprint(simulation_entry_bp)
 app.register_blueprint(events_bp)
 app.register_blueprint(incidents_bp)
 app.register_blueprint(admin_api_bp)
@@ -132,6 +138,7 @@ def add_error_code(response):
 # Public endpoints are deny-by-default. Entries below either perform their own
 # resource-level token validation or must be reachable before authentication.
 PUBLIC_ROUTES = {
+    'simulation_entry.enter', 'simulation_entry.track',
     'events.redirect_handler', 'events.fake_login_submit',
     'events.save_event', 'events.user_profile',
     'auth.admin_login', 'auth.admin_logout', 'health', 'static',

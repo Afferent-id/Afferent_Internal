@@ -14,7 +14,7 @@ export function NoticeShell({ children, footer }: { children: ReactNode; footer?
   return (
     <div className="notice-page">
       <header className="notice-bar">
-        <span className="notice-brand"><Logo variant="mark" size={26} />AFFERENT</span>
+        <span className="notice-brand"><Logo variant="mark" size={26} />Afferent Reflex</span>
         <span className="notice-tools"><LanguageSwitch /><ThemeToggle /></span>
       </header>
       <main className="notice-main" id="content"><article className="notice-card">{children}</article></main>

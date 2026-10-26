@@ -23,4 +23,13 @@ const messages = {};
 vm.runInNewContext(ts.transpileModule(read('src/i18n/messages.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: messages });
 const used = new Set([...(blocked + edu).matchAll(/\bt\('([a-z0-9.]+)'/g)].map(m => m[1]));
 for (const key of used) for (const lang of ['en', 'id']) assert.ok(messages.MESSAGES[lang][key], `${lang} text for ${key}`);
+for (const lang of ['en', 'id']) for (const key of ['auth.title', 'blocked.brand', 'blocked.eyebrow', 'blocked.brandLine', 'tour.title']) {
+  assert.ok(messages.MESSAGES[lang][key].includes('Afferent Reflex'), `${lang} product branding: ${key}`);
+}
+for (const file of ['src/app/auth/page.tsx', 'src/app/layout.tsx', 'src/app/page.tsx', 'src/app/settings/page.tsx',
+  'src/components/admin/DashboardLayout.tsx', 'src/components/ui/SecurityScreen.tsx', 'src/components/ui/NoticeShell.tsx']) {
+  assert.ok(read(file).replace(/<[^>]+>/g, '').includes('Afferent Reflex'), `current product branding: ${file}`);
+}
+const proxy = read('src/components/admin/ProxyOperationsSection.tsx');
+assert.ok(!/DomainSecondOpinion|DomainReputation|api\/proxy\/reputation/.test(proxy), 'live traffic never calls a local LLM or VirusTotal reputation');
 console.log('PASS: blocked page and phishing lesson keep the access request, sign-in path, EN/ID and the two-column layout');

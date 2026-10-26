@@ -1,10 +1,10 @@
-"""Private file scans and local SOC reviews; isolated from OTP/mail/proxy requests."""
+"""Explicit employee VT URL/file scans; never processes live proxy traffic."""
 import logging
 import signal
 import time
 from pathlib import Path
 
-from services import report_service, local_llm_service
+from services import report_service, url_scan_service
 
 
 def main():
@@ -18,12 +18,12 @@ def main():
     signal.signal(signal.SIGINT, stop)
     logging.basicConfig(level=logging.INFO)
     while not stopped:
-        for work in (report_service.process_file_one, local_llm_service.process_one):
-            Path('/tmp/afferent-review-heartbeat').touch()
-            try:
-                work()
-            except Exception as exc:
-                logging.warning('Review deferred: %s', type(exc).__name__)
+        Path('/tmp/afferent-review-heartbeat').touch()
+        try:
+            report_service.process_file_one()
+            url_scan_service.process_one()
+        except Exception as exc:
+            logging.warning('Review deferred: %s', type(exc).__name__)
         time.sleep(1)
 
 

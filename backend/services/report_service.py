@@ -33,6 +33,10 @@ def _combine(results, normalizers, version=2):
         if item:
             evidence[item['provider']] = item
         statuses[result['provider']] = integrations.provider_status(result)
+    return summarize(evidence, statuses, version)
+
+
+def summarize(evidence, statuses, version=4):
     ranking = {'clean': 1, 'suspicious': 2, 'malicious': 3}
     decisive = [item for item in evidence.values() if item['verdict'] != 'unknown']
     strongest = max(decisive, key=lambda item: ranking[item['verdict']], default=None)
@@ -52,7 +56,7 @@ def analyze_url(url):
         analysis = json.loads(cached.get('raw_json') or '{}') if cached else {}
     except (ValueError, TypeError):
         analysis = {}
-    if analysis.get('analysisVersion') == 2:
+    if analysis.get('analysisVersion') == 4 and analysis.get('providerStatus', {}).get('virustotal', {}).get('state') == 'ready':
         return analysis
     with ThreadPoolExecutor(max_workers=2) as pool:
         tasks = [(provider, pool.submit(scan, url)) for provider, scan in (
@@ -63,8 +67,11 @@ def analyze_url(url):
                 results.append(task.result())
             except Exception:
                 results.append({'success': False, 'provider': provider, 'status_code': 502})
-    analysis = _combine(results, (integrations.normalize_virustotal, integrations.normalize_urlscan))
-    if analysis['evidence']:
+    analysis = _combine(results, (integrations.normalize_virustotal, integrations.normalize_urlscan), version=4)
+    if results[0].get('status_code') == 404:
+        from services.url_scan_service import queue
+        return queue(url, analysis)
+    if analysis['evidence'] and analysis['providerStatus']['virustotal']['state'] == 'ready':
         database.save_threat_cache(url, 'url', analysis)
     return analysis
 
@@ -84,6 +91,11 @@ def _serialized(row):
     result['analysis'] = json.loads(result.pop('analysis_json'))
     result.pop('payload', None)
     result['status'] = 'submitted'
+    with closing(database.get_connection()) as conn:
+        incident = conn.execute('SELECT status,assigned_to,resolution FROM incidents WHERE employee_report_id=?', (result['id'],)).fetchone()
+    if incident:
+        result['status'] = ('resolved' if incident['resolution'] == 'block' else 'false positive') if incident['status'] == 'closed' else 'under review' if incident['assigned_to'] else 'submitted'
+        return result
     if result.get('soc_alert_id'):
         alert = proxy_store.get_alert(result['soc_alert_id'])
         if alert:
@@ -130,6 +142,8 @@ def submit(identity, url, description, request_id):
             return {'report': _serialized(existing), 'duplicate': True}
         rate_limit(identity)
         analysis = analyze_url(url)
+        from services.url_scan_service import grant
+        grant(identity, analysis.get('scanId'))
         if not analysis.get('verdict'):
             raise ValueError('Cached intelligence is invalid.')
         from services.proxy_service import normalize_domain
@@ -152,7 +166,15 @@ def submit(identity, url, description, request_id):
                                              analysis['severity'], 'both', raw_scores=analysis, connection=conn)
             conn.execute('INSERT INTO employee_url_reports (id, account_id, email, url, description, verdict, analysis_json, soc_alert_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                          (report_id, identity.account_id, identity.email, url, description.strip(), analysis['verdict'], json.dumps(analysis), str(alert['id'])))
+            conn.execute('''INSERT OR IGNORE INTO incidents(ticket_id,source_type,reported_url,divisi,severity,
+                vt_verdict,urlscan_verdict,employee_report_id,reported_by,proxy_alert_id,checklist)
+                VALUES(?,'real_world_report',?,?,?,?,?,?,?,?,?)''',
+                ('RPT-' + report_id, url, identity.division, 'high' if analysis['verdict'] == 'malicious' else 'medium',
+                 analysis.get('evidence', {}).get('virustotal', {}).get('verdict'),
+                 analysis.get('evidence', {}).get('urlscan', {}).get('verdict'), report_id,
+                 identity.email, str(alert['id']), description.strip()))
             row = conn.execute('SELECT * FROM employee_url_reports WHERE id=?', (report_id,)).fetchone()
+        proxy_store.publish_alert({'type': 'incident.created', 'ticketId': 'RPT-' + report_id})
         return {'report': _serialized(row), 'reward': reward, 'duplicate': False}
     finally:
         lock.release()
@@ -184,6 +206,18 @@ def submit_file_scan(identity, upload, consent, request_id):
             LEFT JOIN file_analysis_jobs j ON j.scan_id=s.id
             WHERE s.account_id=? AND s.file_sha256=?''', (identity.account_id, digest)).fetchone()
         if existing:
+            if existing['done'] and existing['verdict'] == 'unknown':
+                queued_bytes = conn.execute('SELECT COALESCE(SUM(length(payload)),0) FROM file_analysis_jobs').fetchone()[0]
+                if queued_bytes + len(payload) > 64 * 1024 * 1024:
+                    raise ValueError('File scan queue is full. Try again after pending analyses finish.')
+                conn.execute('UPDATE employee_file_scans SET analysis_json=? WHERE id=?', (json.dumps(analysis), existing['id']))
+                retention = max(300, min(86400, int(os.environ.get('FILE_SCAN_RETENTION_SECONDS', '3600'))))
+                conn.execute('''INSERT INTO file_analysis_jobs(scan_id,payload,expires_at,request_id)
+                    VALUES(?,?,?,?) ON CONFLICT(scan_id) DO UPDATE SET payload=excluded.payload,analysis_id=NULL,
+                    done=0,attempts=0,available_at=0,lease_until=0,expires_at=excluded.expires_at''',
+                    (existing['id'], payload, now + retention, request_id))
+                existing = conn.execute('SELECT s.*,0 AS done FROM employee_file_scans s WHERE id=?', (existing['id'],)).fetchone()
+                return {'scan': _serialized_file(existing), 'duplicate': False}
             return {'scan': _serialized_file(existing), 'duplicate': True}
         total = conn.execute('SELECT COALESCE(SUM(length(payload)),0) FROM file_analysis_jobs').fetchone()[0]
         if total + len(payload) > 64 * 1024 * 1024:

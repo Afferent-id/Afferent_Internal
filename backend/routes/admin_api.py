@@ -4,7 +4,7 @@ import gophish_client
 import logging
 import os
 import uuid
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 from security import current_identity, require_roles
 from services import auth_service
 
@@ -54,7 +54,7 @@ def campaign_source(campaign_id):
 
 
 @admin_api_bp.route('/api/admin/security-inbox', methods=['GET'])
-@require_roles('soc', 'grc')
+@require_roles('soc')
 def security_inbox():
     from services.notification_service import security_inbox as inbox
     try:
@@ -64,7 +64,7 @@ def security_inbox():
 
 
 @admin_api_bp.route('/api/admin/security-inbox/warnings', methods=['POST'])
-@require_roles('soc', 'grc')
+@require_roles('soc')
 def manual_warning():
     import uuid
     from services.notification_service import queue_manual_warning
@@ -105,14 +105,14 @@ def sanitize_gophish_html(html):
     return html
 
 @admin_api_bp.route('/api/dashboard-summary', methods=['GET'])
-@require_roles('phishing_admin', 'soc', 'grc', 'ciso')
+@require_roles('phishing_admin', 'soc')
 def dashboard_summary():
     summary = database.get_dashboard_summary()
     return jsonify(summary), 200
 
 
 @admin_api_bp.route('/api/admin/audit-log', methods=['GET'])
-@require_roles('soc', 'grc', 'ciso')
+@require_roles('soc')
 def audit_log():
     """Who decided what, when and why: incidents, access requests, education warnings and proxy block/allow."""
     from services import audit_log_service
@@ -125,7 +125,7 @@ def audit_log():
 
 
 @admin_api_bp.route('/api/admin/trends', methods=['GET'])
-@require_roles('soc', 'grc', 'ciso')
+@require_roles('soc')
 def weekly_trends():
     """Weekly numbers for the executive trend. Reading refreshes this week's row, so the history builds up by itself."""
     try:
@@ -138,7 +138,7 @@ def weekly_trends():
 
 @admin_api_bp.route('/api/leaderboard', methods=['GET'])
 @admin_api_bp.route('/api/admin/leaderboard', methods=['GET'])
-@require_roles('employee', 'phishing_admin', 'soc', 'grc', 'ciso')
+@require_roles('employee', 'phishing_admin', 'soc')
 def leaderboard():
     """Handoff Step A.4 — Leaderboard UI Tab data source. Mengembalikan
     ranking individu (berdasarkan poin) dan rata-rata poin per divisi."""
@@ -154,7 +154,7 @@ def leaderboard():
 
 @admin_api_bp.route('/api/login-history', methods=['GET'])
 @admin_api_bp.route('/api/admin/login-history', methods=['GET'])
-@require_roles('phishing_admin', 'soc', 'ciso')
+@require_roles('phishing_admin', 'soc')
 def login_history():
     """Audit log riwayat login admin/user."""
     try:
@@ -166,7 +166,7 @@ def login_history():
 
 @admin_api_bp.route('/api/compliance-summary', methods=['GET'])
 @admin_api_bp.route('/api/admin/compliance-summary', methods=['GET'])
-@require_roles('grc', 'ciso')
+@require_roles('soc', 'phishing_admin')
 def compliance_summary():
     """Mengembalikan skor Kesiapan Kepatuhan (Readiness Level) terklasifikasi
     berdasarkan klausul resmi ISO 27001:2022 dan UU PDP No. 27/2022."""
@@ -174,14 +174,14 @@ def compliance_summary():
 
 
 @admin_api_bp.route('/api/admin/readiness-thresholds', methods=['GET'])
-@require_roles('grc', 'ciso')
+@require_roles('phishing_admin')
 def get_readiness_thresholds_route():
     """Mengembalikan daftar ambang batas kesiapan GRC."""
     return jsonify(database.get_readiness_thresholds()), 200
 
 
 @admin_api_bp.route('/api/admin/readiness-thresholds', methods=['POST'])
-@require_roles('grc')
+@require_roles('phishing_admin')
 def update_readiness_threshold_route():
     """Update ambang batas kesiapan GRC. Menolak perubahan jika is_legally_mandated = 1."""
 
@@ -258,7 +258,7 @@ def _enrich_campaign_stats(c):
 
 
 @admin_api_bp.route('/api/admin/gophish/campaigns', methods=['GET'])
-@require_roles('phishing_admin', 'ciso')
+@require_roles('phishing_admin')
 def gophish_campaigns():
     combined = []
     # 1. Fetch local campaigns
@@ -283,9 +283,10 @@ def gophish_campaigns():
 
 
 @admin_api_bp.route('/api/admin/gophish/resources', methods=['GET'])
-@require_roles('phishing_admin', 'ciso')
+@require_roles('phishing_admin')
 def gophish_resources():
     from services.campaign_materials import education_url
+    from routes.simulation_entry import entry_url
     try:
         education = education_url()
     except gophish_client.GoPhishError:
@@ -294,18 +295,12 @@ def gophish_resources():
     pages = gophish_client.get_pages() or []
     profiles = [{k: p.get(k) for k in ('id', 'name', 'host', 'from_address')}
                 for p in gophish_client.get_sending_profiles() or []]
-    base = os.environ.get('GOPHISH_PHISH_PUBLIC_URL', '').strip()
-    if not base:
-        parts = urlsplit(os.environ.get('SERVER_BASE_URL') or os.environ.get('SIMULATION_BASE_URL') or '')
-        if parts.hostname:
-            host = f'[{parts.hostname}]' if ':' in parts.hostname else parts.hostname
-            base = urlunsplit(('http', f'{host}:8080', '', '', ''))
     return jsonify({
         "templates": templates,
         "pages": pages,
         "profiles": profiles,
         "connected": True,
-        "phishUrl": base,
+        "phishUrl": entry_url(),
         "educationUrl": education,
         "adminUrl": os.environ.get('GOPHISH_ADMIN_PUBLIC_URL', 'https://localhost:3333'),
         "mailpitUrl": os.environ.get('MAILPIT_PUBLIC_URL', 'http://127.0.0.1:8025'),
@@ -352,9 +347,10 @@ def gophish_launch():
     try:
         parsed = urlsplit(url) if isinstance(url, str) else None
         if not parsed or parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or '{{' in url:
-            raise ValueError('URL harus alamat HTTP/HTTPS GoPhish lab yang dapat diakses penerima (port 8080), bukan /redirect-handler.')
-        if parsed.path not in ('', '/'):
-            raise ValueError('Gunakan base URL GoPhish tanpa path, misalnya http://IP-SERVER:8080.')
+            raise ValueError('Use a reachable HTTP/HTTPS campaign gateway or GoPhish URL.')
+        from routes.simulation_entry import entry_url
+        if parsed.path not in ('', '/') and url != entry_url():
+            raise ValueError('Use the configured Afferent campaign gateway or the GoPhish base URL.')
         targets = simulation_targets(data.get('target_emails', []))
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 400
@@ -387,7 +383,7 @@ def gophish_delete_campaign(campaign_id):
 
 
 @admin_api_bp.route('/api/admin/gophish/campaigns/<int:campaign_id>', methods=['GET'])
-@require_roles('phishing_admin', 'ciso')
+@require_roles('phishing_admin')
 def gophish_get_campaign(campaign_id):
     try:
         source, result = campaign_source(campaign_id)
@@ -559,7 +555,7 @@ def gophish_import_site():
 
 
 @admin_api_bp.route('/api/admin/employees', methods=['GET'])
-@require_roles('phishing_admin', 'grc', 'ciso')
+@require_roles('phishing_admin')
 def list_employees():
     try:
         employees = auth_service.list_accounts()
@@ -571,7 +567,7 @@ def list_employees():
 @admin_api_bp.route('/api/admin/threats/feed', methods=['GET'])
 @admin_api_bp.route('/api/threats/feed', methods=['GET'])
 @admin_api_bp.route('/api/admin/threat-cache', methods=['GET'])
-@require_roles('soc', 'ciso')
+@require_roles('soc')
 def get_threats_feed():
     try:
         indicator_type = request.args.get('type')
@@ -647,7 +643,7 @@ def save_threat_cache_api():
 @admin_api_bp.route('/api/admin/policy/decisions', methods=['GET'])
 @admin_api_bp.route('/api/policy/decisions', methods=['GET'])
 @admin_api_bp.route('/api/policy', methods=['GET'])
-@require_roles('soc', 'ciso')
+@require_roles('soc')
 def get_policy_decisions():
     try:
         limit = request.args.get('limit', 50, type=int)
@@ -677,7 +673,7 @@ def evaluate_policy_api():
 @admin_api_bp.route('/api/admin/ai/summaries', methods=['GET'])
 @admin_api_bp.route('/api/ai/summaries', methods=['GET'])
 @admin_api_bp.route('/api/summary', methods=['GET'])
-@require_roles('soc', 'grc', 'ciso')
+@require_roles('soc')
 def get_ai_summaries():
     try:
         limit = request.args.get('limit', 5, type=int)
@@ -735,7 +731,7 @@ def edit_employee():
 
 
 @admin_api_bp.route('/api/admin/divisions', methods=['GET'])
-@require_roles('phishing_admin', 'grc', 'ciso')
+@require_roles('phishing_admin')
 def list_divisions():
     try:
         divisions = database.list_divisions()

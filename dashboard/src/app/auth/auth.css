@@ -29,7 +29,7 @@
   background:
     radial-gradient(circle at 72% 28%, rgba(47, 151, 255, .22), transparent 34%),
     radial-gradient(circle at 16% 82%, rgba(41, 209, 168, .13), transparent 32%),
-    linear-gradient(145deg, #07192b 0%, #0a2540 52%, #0b3153 100%);
+    linear-gradient(170deg, #142945, #183959 66%, #194958);
 }
 
 .login-story::after {
@@ -254,12 +254,15 @@
   gap: 10px;
   margin-top: 24px;
   border: 0;
-  color: white;
-  background: linear-gradient(135deg, #1266b0, #1c82d3);
+  color: var(--lg-on-accent);
+  background: var(--grad-cta);
   box-shadow: 0 10px 24px rgba(22, 105, 177, .19);
 }
 .login-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 13px 28px rgba(22, 105, 177, .24); }
 .login-primary:disabled { opacity: .62; cursor: wait; }
+@media (forced-colors: active) {
+  .login-primary { outline: 1px solid ButtonText; }
+}
 .login-secondary { margin-top: 10px; border: 0; background: transparent; color: var(--lg-muted); }
 .login-secondary:hover { background: var(--lg-hover); }
 .login-trust { display: flex; justify-content: center; align-items: center; gap: 7px; margin-top: 28px; color: var(--lg-faint); font-size: 10px; }

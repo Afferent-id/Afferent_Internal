@@ -70,7 +70,7 @@ class SecurityReports(unittest.TestCase):
         self.assertEqual(self.client.get('/api/threat/file-scan', headers=self.headers).headers.get('Cache-Control'), 'private, no-store')
         self.assertEqual(len(report_service.list_file_scans(identity)), 1)
         self.assertEqual(report_service.list_reports(identity), [])
-        self.assertEqual(notification_service.security_inbox()['reports'], [])
+        self.assertEqual([r for r in notification_service.security_inbox()['reports'] if r['email'] == self.email], [])
         self.soc_events.assert_not_called()
         with closing(database.get_connection()) as conn:
             self.assertEqual(conn.execute('SELECT COUNT(*) FROM employee_url_reports WHERE account_id=?', (identity.account_id,)).fetchone()[0], 0)
@@ -110,7 +110,7 @@ class SecurityReports(unittest.TestCase):
         self.assertEqual(self.job(legacy_id)['payload'], payload)
         self.assertEqual(len(report_service.list_file_scans(identity)), 1)
         self.assertEqual(report_service.list_reports(identity), [])
-        self.assertEqual(notification_service.security_inbox()['reports'], [])
+        self.assertEqual([r for r in notification_service.security_inbox()['reports'] if r['email'] == self.email], [])
         with closing(database.get_connection()) as conn, conn:
             self.assertIsNone(conn.execute('SELECT payload FROM pdf_analysis_jobs WHERE report_id=?', (legacy_id,)).fetchone()[0])
             self.assertIsNotNone(conn.execute('SELECT id FROM employee_url_reports WHERE id=?', (legacy_id,)).fetchone())
@@ -135,7 +135,7 @@ class SecurityReports(unittest.TestCase):
         self.assertEqual(reports[0]['verdict'], 'malicious')
         self.assertEqual(reports[0]['status'], 'completed')
         self.soc_events.assert_not_called()
-        self.assertEqual(notification_service.security_inbox()['reports'], [])
+        self.assertEqual([r for r in notification_service.security_inbox()['reports'] if r['email'] == self.email], [])
 
     def test_new_file_upload_pending_completed_and_bytes_deleted(self):
         report = self.upload().get_json()['scan']
@@ -204,7 +204,7 @@ class SecurityReports(unittest.TestCase):
         self.assertEqual(database.get_user_history(self.email)['points'], before)
         self.assertEqual(self.client.get('/api/reports', headers=self.headers).get_json()['reports'], [])
 
-    def test_llm_only_soc_and_no_enforcement(self):
+    def test_retired_llm_endpoint_cannot_create_reviews_or_policy(self):
         path = '/api/proxy/second-opinion'
         self.assertEqual(self.client.post(path, json={'domain': 'example.test'}, headers=self.headers).status_code, 403)
         email = uuid.uuid4().hex + '@demo.test'
@@ -215,11 +215,8 @@ class SecurityReports(unittest.TestCase):
              patch.object(local_llm_service, 'analyze', return_value={'assessment': 'suspicious', 'category': 'phishing', 'reason': 'Fixture only', 'confidence': None, 'advisoryOnly': True}), \
              patch.object(proxy_store, 'upsert_verdict') as policy:
             response = self.client.post(path, json={'domain': domain}, headers=headers)
-            self.assertEqual(response.status_code, 202, response.get_json())
-            self.assertTrue(local_llm_service.process_one())
-            review = self.client.get(path + '?domain=' + domain, headers=headers).get_json()
-            self.assertEqual(review['status'], 'completed')
-            self.assertTrue(review['advisoryOnly'])
+            self.assertEqual(response.status_code, 410, response.get_json())
+            self.assertEqual(self.client.get(path + '?domain=' + domain, headers=headers).status_code, 410)
             policy.assert_not_called()
 
     def test_llm_extra_confidence_or_invalid_output_rejected(self):

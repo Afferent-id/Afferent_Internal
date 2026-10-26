@@ -9,7 +9,7 @@ ROOT = Path('/usr/local/share/afferent')
 
 
 def render(template, font, portal=''):
-    action = '<p class="lead">Open AFFERENT from a trusted bookmark.</p>'
+    action = '<p class="lead">Open Afferent Reflex from a trusted bookmark.</p>'
     if portal:
         parts = urlsplit(portal)
         if parts.scheme not in ('http', 'https') or not parts.hostname or parts.username or any(c.isspace() for c in portal):

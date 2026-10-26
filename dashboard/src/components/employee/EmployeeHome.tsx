@@ -137,7 +137,7 @@ export default function EmployeeHome(props: EmployeeHomeProps) {
     <div className="emp-home">
       <h1 className="emp-greeting">{t('emp.greeting', { name: (name || '').split(' ')[0] || '' }).replace(/\s+\./, '.')} <span className="wave" aria-hidden="true">👋</span></h1>
 
-      {/* One block, only while protection is off. Nothing at all once it works. */}
+      {/* One status block for both connected and disconnected protection. */}
       <ProxyConnectionCard />
 
       {/* Top area: "Check links and files" is the main action and gets the widest column, visible without scrolling. */}

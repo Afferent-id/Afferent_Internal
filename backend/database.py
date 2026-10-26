@@ -136,6 +136,17 @@ def init_db():
             provider TEXT NOT NULL, minute INTEGER NOT NULL, requests INTEGER NOT NULL,
             PRIMARY KEY(provider, minute)
         )''')
+        cursor.execute('''CREATE TABLE IF NOT EXISTS url_analysis_jobs (
+            id TEXT PRIMARY KEY, url TEXT NOT NULL, analysis_json TEXT NOT NULL,
+            analysis_id TEXT, done INTEGER NOT NULL DEFAULT 0,
+            attempts INTEGER NOT NULL DEFAULT 0, available_at INTEGER NOT NULL DEFAULT 0,
+            lease_until INTEGER NOT NULL DEFAULT 0, expires_at INTEGER NOT NULL,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''')
+        cursor.execute('''CREATE TABLE IF NOT EXISTS url_scan_access (
+            account_id INTEGER NOT NULL, scan_id TEXT NOT NULL,
+            PRIMARY KEY(account_id, scan_id)
+        )''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS local_llm_reviews (
             id TEXT PRIMARY KEY, domain TEXT NOT NULL, model TEXT NOT NULL,
             actor_email TEXT NOT NULL, request_id TEXT NOT NULL,
@@ -220,6 +231,12 @@ def init_db():
         # Audit trail for incident handling: who resolved, reopened or assigned an incident, when, and why.
         if not _column_exists(cursor, 'incidents', 'assigned_to'):
             cursor.execute('ALTER TABLE incidents ADD COLUMN assigned_to TEXT')
+        for definition in ('employee_report_id TEXT', 'reported_by TEXT', 'proxy_alert_id TEXT',
+                           'resolution TEXT', 'resolution_reason TEXT', 'resolved_by TEXT',
+                           'historical_import INTEGER NOT NULL DEFAULT 0'):
+            if not _column_exists(cursor, 'incidents', definition.split()[0]):
+                cursor.execute(f'ALTER TABLE incidents ADD COLUMN {definition}')
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS ux_incident_employee_report ON incidents(employee_report_id) WHERE employee_report_id IS NOT NULL')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS incident_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -232,6 +249,21 @@ def init_db():
             )
         ''')
         cursor.execute('CREATE INDEX IF NOT EXISTS ix_incident_events_ticket ON incident_events(ticket_id, id)')
+        for definition in ('before_state TEXT', 'after_state TEXT', 'request_id TEXT', 'source_alert TEXT'):
+            if not _column_exists(cursor, 'incident_events', definition.split()[0]):
+                cursor.execute(f'ALTER TABLE incident_events ADD COLUMN {definition}')
+        for operation in ('UPDATE', 'DELETE'):
+            cursor.execute(f'''CREATE TRIGGER IF NOT EXISTS incident_events_no_{operation.lower()}
+                BEFORE {operation} ON incident_events BEGIN SELECT RAISE(ABORT,'Incident audit is append-only'); END''')
+        # Link actual existing employee reports, including inconclusive evidence.
+        # Old tickets remain as historical records; no fabricated/demo rows added.
+        cursor.execute('''INSERT OR IGNORE INTO incidents(ticket_id,source_type,reported_url,divisi,severity,
+            vt_verdict,urlscan_verdict,employee_report_id,reported_by,proxy_alert_id,checklist,created_at,historical_import)
+            SELECT 'RPT-'||r.id,'real_world_report',r.url,COALESCE(u.divisi,'General'),
+            CASE WHEN r.verdict='malicious' THEN 'high' ELSE 'medium' END,
+            r.verdict,NULL,r.id,r.email,r.soc_alert_id,r.description,r.created_at,1
+            FROM employee_url_reports r LEFT JOIN user_history u ON lower(u.email)=lower(r.email)
+            WHERE r.report_type='url' ''')
         # One row per week (Monday, UTC): lets the CISO page show a trend. The current week is updated in place.
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS weekly_snapshots (
@@ -848,6 +880,8 @@ def init_db():
                     VALUES (?, ?, ?, ?, ?)
                 ''', (q["question_text"], json.dumps(q["options"]), q["correct_answer_index"], q["category"], q["difficulty"]))
 
+        from services.exam_service import init_schema as init_exam_schema
+        init_exam_schema(conn)
         from quiz_explanations import EXPLANATIONS
         for question_text, why in EXPLANATIONS.items():
             cursor.execute('UPDATE quiz_questions SET explanation = ? WHERE explanation IS NULL AND substr(question_text, 1, 80) = ?', (why, question_text))
@@ -1609,6 +1643,10 @@ def record_event(email: str, divisi: str, event_type: str,
                 UPDATE user_history SET points = ?, badge = ? WHERE email = ?
             ''', (new_points, classify_badge(new_points), email))
 
+            if source_receipt and source_receipt.startswith('gophish:'):
+                from services.exam_service import require_for_click
+                require_for_click(conn, email, campaign_id, new_points)
+
         elif event_type == "submitted_data":
             # Gamifikasi Step A.2: -20 poin tambahan kalau sampai submit
             # kredensial di fake-login (lebih berat daripada sekadar klik).
@@ -1911,7 +1949,7 @@ def notify_soc_of_severe_incident(ticket_id: str, divisi: str, reported_url: str
             recipients = [r['email'] for r in conn.execute("SELECT email FROM employee_accounts WHERE role = 'soc' AND is_active = 1").fetchall()]
         finally:
             conn.close()
-        subject = f'[AFFERENT] High-severity incident {ticket_id}'
+        subject = f'[Afferent Reflex] High-severity incident {ticket_id}'
         body = (f'<p>A high-severity incident was opened and needs a SOC owner.</p>'
                 f'<p><b>Ticket:</b> {html.escape(ticket_id)}<br><b>Division:</b> {html.escape(divisi or "-")}<br>'
                 f'<b>Reported address:</b> {html.escape(reported_url or "-")}</p>'

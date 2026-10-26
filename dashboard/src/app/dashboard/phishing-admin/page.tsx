@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useI18n } from '@/i18n/I18nProvider';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/admin/DashboardLayout';
+import TrainingInbox from '@/components/admin/TrainingInbox';
 import GophishCampaignSection from '@/components/admin/GophishCampaignSection';
 import CampaignWizard from '@/components/admin/CampaignWizard';
 import EmployeeRosterSection from '@/components/admin/EmployeeRosterSection';
@@ -617,6 +618,7 @@ export default function PhishingAdminDashboard() {
         />
       )}
 
+      {activeTab === 'inbox' && <TrainingInbox />}
       {activeTab === 'employees' && (
         <EmployeeRosterSection
           readOnly={false}
@@ -721,7 +723,7 @@ export default function PhishingAdminDashboard() {
             <Field label={t('adm2.emp.email')}>{c => <input {...c} type="email" placeholder={mode === 'create' ? t('adm2.emp.email.ph') : undefined} value={empEmail} onChange={e => setEmpEmail(e.target.value)} />}</Field>
             <Field label={t('adm2.emp.role')}>{c => (
               <select {...c} value={empRole} onChange={e => setEmpRole(e.target.value)}>
-                {(['employee', 'phishing_admin', 'soc', 'grc', 'ciso'] as const).map(role => <option key={role} value={role}>{t(`adm2.role.${role}` as MessageKey)}</option>)}
+                {(['employee', 'phishing_admin', 'soc'] as const).map(role => <option key={role} value={role}>{t(`adm2.role.${role}` as MessageKey)}</option>)}
               </select>
             )}</Field>
             <Field label={t(mode === 'create' ? 'adm2.emp.password' : 'adm2.emp.reset')} hint={mode === 'create' ? t('adm2.emp.password.hint') : undefined}>{c => <input {...c} type="password" autoComplete="new-password" placeholder={t(mode === 'create' ? 'adm2.emp.password.ph' : 'adm2.emp.reset.ph')} value={empPassword} onChange={e => setEmpPassword(e.target.value)} />}</Field>

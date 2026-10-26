@@ -1,0 +1,2 @@
+# Offline corpus preparation only; not installed in the application image.
+tldextract==5.3.0

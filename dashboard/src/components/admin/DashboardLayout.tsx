@@ -9,8 +9,6 @@ import NotificationBell from '@/components/NotificationBell';
 import FirstRunTour from '@/components/FirstRunTour';
 import CommandPalette, { type Command } from '@/components/ui/CommandPalette';
 import { useWorkQueue } from '@/hooks/useWorkQueue';
-import { useNow } from '@/hooks/useNow';
-import { formatAgo } from '@/lib/relativeTime';
 import { useI18n } from '@/i18n/I18nProvider';
 import { usePreference } from '@/hooks/usePreference';
 import { useTheme } from '@/hooks/useTheme';
@@ -45,13 +43,9 @@ const TAB: Record<string, TabDef> = {
 /** For SOC the first tab is the incident queue, so it carries that name. */
 const SOC_INCIDENTS: TabDef = { ...TAB.overview, labelKey: 'nav.incidents' };
 
-const CISO_POSTURE: TabDef = { ...TAB.overview, labelKey: 'nav.posture' };
-
 const ROLE_TABS: Record<AdminRole, TabDef[]> = {
-  phishing_admin: [TAB.gophish, TAB.employees, TAB.leaderboard],
-  soc: [SOC_INCIDENTS, TAB.inbox, TAB.threats, TAB.ai, TAB.audit],
-  grc: [TAB.overview, TAB.inbox, TAB.leaderboard, TAB.compliance, TAB.ai, TAB.audit, TAB.employees],
-  ciso: [CISO_POSTURE, TAB.threats, TAB.leaderboard, TAB.policy, TAB.gophish, TAB.employees, TAB.ai, TAB.audit],
+  phishing_admin: [TAB.gophish, TAB.inbox, TAB.employees, TAB.leaderboard],
+  soc: [SOC_INCIDENTS, TAB.threats, TAB.inbox, { ...TAB.ai, labelKey: 'soc.insights' }, TAB.audit],
 };
 
 interface DashboardLayoutProps {
@@ -70,7 +64,6 @@ export default function DashboardLayout({ role, activeTab, onTabChange, children
   const [mobileOpen, setMobileOpen] = useState(false);
   const collapsed = sidebar === 'mini';
   const queue = useWorkQueue(role);
-  const now = useNow(10_000);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   // Ctrl or Command + K opens "Go to", from anywhere on the page.
@@ -123,12 +116,10 @@ export default function DashboardLayout({ role, activeTab, onTabChange, children
 
   // What is waiting, shown beside the page that deals with it.
   const waiting = (id: string): number => {
-    if (id === 'inbox') return queue.requestsWaiting;
+    if (id === 'inbox') return queue.requestsWaiting + queue.trainingWaiting;
     if (id === 'overview') return role === 'soc' ? queue.openIncidents : queue.urgentIncidents;
     return 0;
   };
-  const syncState = queue.failed ? 'stale' : queue.updatedAt === null ? 'waiting' : 'live';
-  const syncText = syncState === 'stale' ? t('sync.stale') : syncState === 'waiting' ? t('sync.waiting') : `${t('sync.live')} · ${t('sync.updated', { time: formatAgo(new Date(queue.updatedAt ?? now).toISOString(), lang, now) })}`;
   const commands: Command[] = [
     ...tabs.map(tab => ({ id: `tab-${tab.id}`, label: t(tab.labelKey), group: 'pages' as const, icon: tab.icon, run: () => choose(tab.id) })),
     { id: 'settings', label: t('settings.title'), group: 'pages' as const, icon: <Settings size={ICON} aria-hidden="true" />, run: () => router.push('/settings') },
@@ -148,7 +139,7 @@ export default function DashboardLayout({ role, activeTab, onTabChange, children
         <div className="sb-head">
           <div className="sb-brand">
             <Logo variant="mark" size={28} />
-            <span className="sb-brand-text">AFFERENT</span>
+            <span className="sb-brand-text">Afferent <span className="brand-reflex">Reflex</span></span>
           </div>
           <button type="button" className="iconbtn sb-collapse" onClick={() => setSidebar(collapsed ? 'open' : 'mini')} aria-label={collapsed ? t('nav.expand') : t('nav.collapse')} title={collapsed ? t('nav.expand') : t('nav.collapse')}>
             <PanelLeft size={18} className="sb-collapse-icon" aria-hidden="true" />
@@ -188,7 +179,7 @@ export default function DashboardLayout({ role, activeTab, onTabChange, children
         <div className="sb-spacer" />
         <hr className="sb-sep" />
 
-        <p className="sb-sync" data-state={syncState} role="status" title={syncText}><i aria-hidden="true" /><span className="sb-sync-text">{syncText}</span></p>
+        {queue.failed && <p className="sb-sync" data-state="stale" role="status"><span>{t('sync.stale')}</span></p>}
         <div className="sb-lang" role="group" aria-label={t('lang.label')}>
           <Globe size={ICON} aria-hidden="true" />
           <span className="sb-label">{t('lang.label')}</span>
@@ -217,7 +208,6 @@ export default function DashboardLayout({ role, activeTab, onTabChange, children
             <h1>{activeDef ? t(activeDef.labelKey) : t('nav.overview')}</h1>
           </div>
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            {role === 'ciso' && <span className="shell-chip" title={t('shell.readonlyHint')}>{t('shell.readonly')}</span>}
             <NotificationBell role={role} onOpenTab={choose} queue={queue} />
           </span>
         </header>

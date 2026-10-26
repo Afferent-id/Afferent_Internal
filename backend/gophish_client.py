@@ -163,7 +163,7 @@ def ensure_demo_resources():
             '<html><body><p>Halo {{.FirstName}},</p><p>Periksa akses akun lab melalui <a href="{{.URL}}">portal verifikasi</a>.</p>{{.Tracker}}</body></html>',
             'Halo {{.FirstName}}, periksa akses akun lab: {{.URL}}')
     if not pages:
-        create_page('AFFERENT Lab - Awareness', '<html><head><title>AFFERENT Awareness</title></head><body><h1>Ini simulasi phishing AFFERENT</h1><p>Tautan ini digunakan untuk pelatihan lab. Jangan masukkan password asli. Periksa pengirim dan domain sebelum membuka tautan.</p></body></html>', False, False)
+        create_page('AFFERENT Lab - Awareness', '<html><head><title>Afferent Reflex Awareness</title></head><body><h1>Ini simulasi phishing Afferent Reflex</h1><p>Tautan ini digunakan untuk pelatihan lab. Jangan masukkan password asli. Periksa pengirim dan domain sebelum membuka tautan.</p></body></html>', False, False)
     if not any(p.get('name') == 'AFFERENT Mailpit Lab' for p in profiles):
         _request('POST', '/api/smtp', {'name': 'AFFERENT Mailpit Lab', 'interface_type': 'SMTP',
             # Some GoPhish builds reject display-name From headers; keep the

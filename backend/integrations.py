@@ -97,6 +97,7 @@ def _provider_response(response, provider):
 def provider_status(result):
     code = result.get('status_code', 502)
     state = ('not_configured' if 'not configured' in result.get('error', '') else
+             'invalid_key' if code == 401 else 'forbidden' if code == 403 else
              'rate_limited' if code == 429 else 'no_record' if code == 404 else
              'ready' if result.get('success') else 'unavailable')
     return {'state': result.get('state', state), 'statusCode': code}
@@ -145,7 +146,7 @@ def scan_virustotal(url: str):
         response = requests.get(
             f"{VT_BASE_URL}/{url_id}",
             headers=headers,
-            timeout=8
+            timeout=(4, 8), allow_redirects=False
         )
     except requests.exceptions.Timeout:
         return {
@@ -182,7 +183,10 @@ def normalize_virustotal(result):
         return None
 
     data = (result.get('data') or {}).get('data') or {}
-    stats = (data.get('attributes') or {}).get('last_analysis_stats') or {}
+    attributes = data.get('attributes') or {}
+    if attributes.get('status') and attributes['status'] != 'completed':
+        return None
+    stats = attributes.get('last_analysis_stats', attributes.get('stats', {})) or {}
     if not isinstance(stats, dict):
         stats = {}
     stats = {key: value for key, value in stats.items() if isinstance(value, int) and not isinstance(value, bool) and value >= 0}

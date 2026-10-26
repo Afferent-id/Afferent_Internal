@@ -22,7 +22,7 @@ class WeeklyTrends(unittest.TestCase):
         self.client = app.test_client()
 
     def test_staff_read_and_employee_is_refused(self):
-        for role in ('soc', 'grc', 'ciso'):
+        for role in ('soc',):
             response = self.client.get('/api/admin/trends', headers=make_account(role))
             self.assertEqual(response.status_code, 200, role)
             self.assertGreaterEqual(len(response.get_json()['weeks']), 1)
@@ -37,8 +37,8 @@ class WeeklyTrends(unittest.TestCase):
         self.assertEqual([w['week_start'] for w in rows], ['2031-03-03', '2031-03-10'])
 
     def test_bad_weeks_value(self):
-        self.assertEqual(self.client.get('/api/admin/trends?weeks=abc', headers=make_account('ciso')).status_code, 400)
-        self.assertEqual(self.client.get('/api/admin/trends?weeks=1', headers=make_account('ciso')).status_code, 200)
+        self.assertEqual(self.client.get('/api/admin/trends?weeks=abc', headers=make_account('soc')).status_code, 400)
+        self.assertEqual(self.client.get('/api/admin/trends?weeks=1', headers=make_account('soc')).status_code, 200)
 
 
 if __name__ == '__main__':

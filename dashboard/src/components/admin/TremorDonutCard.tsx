@@ -47,6 +47,7 @@ export function TremorDonutCard({ title, description, data, totalLabel, unit, cl
       <LoadGate state={state} errorTitle="err.incidents" lines={3}>
       {total === 0 ? <p className="emp-muted">{t('ov.donut.empty')}</p> : (
         <div className="donut-row">
+          <div className="donut-visual">
           <div className="donut-chart" aria-hidden="true">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart accessibilityLayer={false}>
@@ -56,7 +57,9 @@ export function TremorDonutCard({ title, description, data, totalLabel, unit, cl
                 <Tooltip itemStyle={{ color: 'var(--text-primary)' }} contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)' }} />
               </PieChart>
             </ResponsiveContainer>
-            <div className="donut-center"><b>{total}</b><small>{totalLabel ?? t('ov.sev.total')}</small></div>
+            <div className="donut-center"><b>{total}</b></div>
+          </div>
+          <p className="donut-caption"><span className="visually-hidden">{total} </span>{totalLabel ?? t('ov.sev.total')}</p>
           </div>
           <ul className="donut-legend">
             {data.map(item => (

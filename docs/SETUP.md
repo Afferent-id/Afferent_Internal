@@ -95,7 +95,8 @@ nilainya di-hardcode `true` di `docker-compose.yml`.
 
 **Integrasi opsional**: `VT_API_KEY`, `URLSCAN_API_KEY`, `VT_REQUESTS_PER_MINUTE` (kuota VirusTotal bersama), `FILE_SCAN_MAX_MB`, `FILE_SCAN_RETENTION_SECONDS`,
 `FIRECRAWL_API_KEY` (kloning halaman kampanye), `GEMINI_API_KEY`, `GROQ_API_KEY`, `GROQ_MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `AI_HEATMAP_USE_LLM`,
-`LOCAL_LLM_ENABLED`, `LOCAL_LLM_URL`, `LOCAL_LLM_MODEL`, `LOCAL_LLM_OUTPUT_MODE`, `LOCAL_LLM_TIMEOUT_SECONDS`.
+Live traffic hanya memakai ML lokal; local LLM telah dipensiunkan dari Compose.
+VT/urlscan tidak dipanggil untuk traffic proxy, termasuk di background.
 
 **Dashboard saja**: `USE_MOCKS=true` (dengan `npm run dev:mock`, hanya di `next dev`); `scripts/validate-runtime-env.mjs` dijalankan sebelum `npm start`.
 
@@ -108,7 +109,6 @@ nilainya di-hardcode `true` di `docker-compose.yml`.
 | GoPhish admin | `https://localhost:3333` (percayai CA lab publik di `secrets/gophish-pki/`) |
 | Dashboard saja, tanpa backend | `cd dashboard && npm run dev:mock` (data palsu; ganti role/skenario lewat switcher mock) |
 | Dashboard dev + backend nyata | `cd dashboard && npm run dev` dengan `API_URL` mengarah ke Flask |
-| LLM lokal (opsional) | `docker compose --profile llm up -d`, lalu `docker compose exec local_llm ollama pull qwen3:4b-instruct-2507-q4_K_M` |
 | Hentikan | `docker compose stop` |
 
 Akun: administrator dari `BOOTSTRAP_ADMIN_EMAIL`/`ADMIN_PASSWORD`; buat akun employee dan SOC terpisah lewat dashboard.

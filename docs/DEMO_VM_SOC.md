@@ -50,7 +50,8 @@ docker compose ps
 
 Sembilan service harus healthy: dashboard, flask_api, centralized_proxy,
 notification_worker, review_worker, proxy_postgres, proxy_redis, mailpit, gophish.
-`local_llm` adalah service kesepuluh jika profile `llm` diaktifkan. Saat ENV berubah,
+Live traffic memakai ML domain lokal saja; local LLM telah dinonaktifkan dari stack.
+VirusTotal/urlscan hanya untuk scan/report yang diminta employee. Saat ENV berubah,
 jalankan `docker compose up -d` untuk recreate container; `restart` saja tidak
 memuat ENV baru. GoPhish admin dan Mailpit hanya host; PostgreSQL/Redis tidak
 dipublikasikan. GoPhish CA verification harus tetap aktif.

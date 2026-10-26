@@ -40,7 +40,7 @@ export default function SecurityScreen(props: SecurityScreenProps) {
     <div className="sec-page" data-tone={tone}>
       <div className="sec-workspace">
         <header className="sec-bar">
-          <span className="sec-brand"><Logo variant="mark" size={26} />AFFERENT<span className="sec-brand-sep" aria-hidden="true">/</span><small>{area}</small></span>
+          <span className="sec-brand"><Logo variant="mark" size={26} />Afferent <span className="brand-reflex">Reflex</span><span className="sec-brand-sep" aria-hidden="true">/</span><small>{area}</small></span>
           <span className="sec-tools">
             <span className="sec-status">{status}</span>
             <LanguageSwitch />

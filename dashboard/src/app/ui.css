@@ -102,7 +102,11 @@ a.kpi:hover { border-color: var(--border-control); }
 .kpi-hint { font-size: var(--text-xs); color: var(--text-muted); }
 
 /* ── Data table ──────────────────────────────────────────────────────── */
+.data-table-panel { min-width:0; }
 .table-wrap { container-type: inline-size; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-surface); }
+.table-pagination { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 2px; font-size:12px; line-height:1.5; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+.table-pagination > div { display:flex; gap:12px; align-items:center; }
+.table-pagination .btn { min-height:32px; font-size:12px; }
 /* When a table is still wider than its box, a soft shadow on the cut edge shows there is more; the box can be scrolled with the keyboard.
    Nothing is drawn when the table fits. */
 .table-wrap[data-more~="right"] { box-shadow: inset -14px 0 12px -10px rgb(0 0 0 / 28%); }

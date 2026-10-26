@@ -12,10 +12,8 @@ export function rememberAnnounced(announcedRaw: string, ids: readonly string[]):
   return merged.slice(-50).join(',');
 }
 
-/** Protection is only worth showing once we know it is off: nothing while checking, nothing when it works. */
+/** Keep verified connection status visible; hide initial checks, but never hide an error. */
 export function protectionBlockVisible(state: { booting: boolean; failedToLoad: boolean; registered: boolean; probe: 'checking' | 'connected' | 'disconnected' }): boolean {
-  if (state.booting && !state.failedToLoad) return false;
-  if (state.registered && state.probe === 'checking') return false;
-  if (state.registered && state.probe === 'connected') return false;
-  return true;
+  if (state.failedToLoad) return true;
+  return !state.booting && !(state.registered && state.probe === 'checking');
 }

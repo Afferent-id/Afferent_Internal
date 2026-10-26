@@ -34,7 +34,7 @@ def employee_access_requests():
 
 
 @access_bp.route('/api/admin/access-requests', methods=['GET'])
-@require_roles('soc', 'grc')
+@require_roles('soc')
 def staff_access_requests():
     try:
         return jsonify(access_request_service.list_for_staff(request.args.get('status') or None))

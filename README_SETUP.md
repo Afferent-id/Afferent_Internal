@@ -56,7 +56,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Nine services should become healthy; the tenth (`local_llm`) is optional.
+Nine services should become healthy. Local LLM/Ollama is retired from the active stack.
 Open the configured dashboard URL on port 3000. OTP and campaign email are
 captured in Mailpit at `http://127.0.0.1:8025` on the host, not delivered to Gmail.
 Create separate employee and SOC accounts. The helper selects `APP_ENV=development`
@@ -72,13 +72,12 @@ services. HTTP cookies here are an isolated-lab compromise, not production secur
 | Private file scan, any format ≤10 MB | `VT_API_KEY`; explicit non-confidential upload consent | Unknown, no SOC report |
 | Authorized campaign page cloning | `FIRECRAWL_API_KEY` | Use built-in awareness template |
 | AI campaign/report assistance | Optional Gemini/Groq/OpenRouter settings | Provider-unavailable message / telemetry baseline |
-| Local SOC second opinion | `LOCAL_LLM_ENABLED=true`, `--profile llm`, NVIDIA-compatible Docker GPU | Disabled; proxy ML is unaffected |
 
-To enable local advice, start `docker compose --profile llm up -d`, pull the model
-with `docker compose exec local_llm ollama pull qwen3:4b-instruct-2507-q4_K_M`, and
-recreate Flask/review worker after ENV changes. Advice cannot blacklist domains.
-Fine-tuned experiments have not passed promotion gates; see
-[evaluation](docs/LOCAL_LLM_EVALUATION.md). They are not loaded as active models.
+Live proxy verdicts use the local ML model and cached SOC policies only. Traffic
+is never submitted to VirusTotal/urlscan. These providers are used solely for
+explicit employee URL/file scanning and reporting. Existing LLM training artifacts
+and model volumes remain offline; the old second-opinion endpoint returns 410.
+No GPU is required for the active stack.
 
 ## Checks and safe shutdown
 

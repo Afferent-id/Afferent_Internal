@@ -13,7 +13,7 @@ export interface AuthUser {
   email: string;
   userName: string;
   division: string;
-  role: 'employee' | 'phishing_admin' | 'soc' | 'grc' | 'ciso';
+  role: 'employee' | 'phishing_admin' | 'soc';
   /** Chosen by the person and stored on the account; null until they choose. */
   language?: 'en' | 'id' | null;
 }

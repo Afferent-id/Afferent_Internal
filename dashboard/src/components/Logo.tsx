@@ -41,7 +41,7 @@ export function Logo({
             color: 'var(--text-primary)'
           }}
         >
-          Afferent <span style={{ color: 'var(--accent)', fontWeight: 700 }}>Platform</span>
+          Afferent <span style={{ color: 'var(--accent)', fontWeight: 700 }}>Reflex</span>
         </span>
       )}
     </div>

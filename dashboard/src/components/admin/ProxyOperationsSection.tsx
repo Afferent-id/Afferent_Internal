@@ -2,7 +2,6 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Ban, CheckCircle2 } from 'lucide-react';
-import DomainSecondOpinion from './DomainSecondOpinion';
 import Dialog from '@/components/ui/Dialog';
 import SeverityBadge from '@/components/ui/SeverityBadge';
 import StateMessage from '@/components/ui/StateMessage';
@@ -74,6 +73,8 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [verdicts, setVerdicts] = useState<Verdict[]>([]);
   const [traffic, setTraffic] = useState<Traffic[]>([]);
+  const [trafficSnapshot, setTrafficSnapshot] = useState<Traffic[] | null>(null);
+  const displayedTraffic = trafficSnapshot ?? traffic;
   const [streamOnline, setStreamOnline] = useState(false);
   const [busy, setBusy] = useState('');
   const [message, setMessage] = useState('');
@@ -203,7 +204,7 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
   };
 
   const counts = useMemo(() => ({
-    open: alerts.filter((item) => item.status === 'open').length,
+    open: alerts.filter((item) => item.status === 'open' && !item.stalePrediction && (item.urgency === 'Critical' || item.source === 'employee_report')).length,
     blocked: verdicts.filter((item) => item.source === 'soc' && item.decision === 'block').length,
     traffic: traffic.length,
   }), [alerts, traffic, verdicts]);
@@ -245,7 +246,8 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
         <p className="debt-help">{t('ops.desc')}</p>
         <span className="ops-gateway">
           <span className="emp-muted">{lastTraffic ? t('ops.gateway.last', { when: ago(lastTraffic) }) : t('ops.gateway.none')}</span>
-          <StatusChip tone={streamOnline ? 'ok' : 'warn'}>{t(streamOnline ? 'ops.stream.on' : 'ops.stream.off')}</StatusChip>
+          <StatusChip tone={streamOnline && !loadFailed ? 'ok' : 'warn'}>{t(loadFailed ? 'soc.updates.delayed' : streamOnline ? 'ops.stream.on' : 'ops.stream.off')}</StatusChip>
+          <button type="button" className="btn" onClick={() => void load()}>{t('common.refresh')}</button>
         </span>
       </div>
       <div className="strip" aria-label={t('ops.desc')}>
@@ -253,7 +255,7 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
         <span className="strip-static"><b>{counts.blocked}</b>{t('ops.stat.blocks')}</span>
         <span className="strip-static"><b>{counts.traffic}</b>{t('ops.stat.traffic')}</span>
       </div>
-      {message && <p className="debt-error" role="alert">{message}</p>}
+      {message && <p className={message === t('ops.fail.refresh') ? 'soc-update-note' : 'debt-error'} role={message === t('ops.fail.refresh') ? 'status' : 'alert'}>{message}</p>}
       {tabs}
 
       <div role="tabpanel" id="traffic-panel-live" aria-labelledby="traffic-tab-live" hidden={view !== 'live'} className="ops-main">
@@ -299,15 +301,16 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
           </section>
 
           <section className="ops-block" aria-labelledby="ops-traffic">
-            <div className="ops-head"><h3 id="ops-traffic">{t('ops.traffic.title')}</h3><span className="emp-muted">{t('ops.traffic.count', { n: traffic.length })}</span></div>
+            <div className="ops-head"><h3 id="ops-traffic">{t('ops.traffic.title')}</h3><div className="ops-actions"><span className="emp-muted">{t('ops.traffic.count', { n: displayedTraffic.length })}</span><button type="button" className="btn" aria-pressed={trafficSnapshot !== null} onClick={() => setTrafficSnapshot(trafficSnapshot ? null : [...traffic])}>{t(trafficSnapshot ? 'soc.feed.resume' : 'soc.feed.pause')}</button></div></div>
+            {trafficSnapshot && <p className="soc-update-note" role="status">{t('soc.feed.paused')}</p>}
             <LoadGate state={feedState} errorTitle="err.alerts" compact>
-            {traffic.length === 0
+            {displayedTraffic.length === 0
               ? <StateMessage variant="empty" title={t('ops.traffic.empty')} compact />
               : <div ref={trafficWrap} className="table-wrap" data-more={trafficMore || undefined} role="region" aria-label={t('ops.traffic.caption')} tabIndex={0}><table className="data-table">
                   <caption className="visually-hidden">{t('ops.traffic.caption')}</caption>
                   <thead><tr><th scope="col" data-narrow-hide>{t('ops.col.time')}</th><th scope="col">{t('ops.col.domain')}</th><th scope="col" data-secondary>{t('ops.col.client')}</th><th scope="col">{t('ops.col.decision')}</th><th scope="col" data-secondary>{t('ops.col.source')}</th><th scope="col">{t('ops.col.action')}</th></tr></thead>
                   <tbody>
-                    {traffic.slice(0, trafficRows).map((item) => (
+                    {displayedTraffic.slice(0, trafficRows).map((item) => (
                       <tr key={item.event_id}>
                         <td data-narrow-hide title={new Date(item.occurred_at).toLocaleString()}>{ago(item.occurred_at)}</td>
                         <td><span className="mono">{item.domain}{item.port ? `:${item.port}` : ''}</span></td>
@@ -322,8 +325,8 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
                   </tbody>
                 </table></div>}
             </LoadGate>
-            {traffic.length > trafficRows && <div className="ops-more"><button type="button" className="btn" onClick={() => setTrafficRows(rows => Math.min(TRAFFIC_ROWS, rows + TRAFFIC_STEP))}>{t('ops.showMore')}</button></div>}
-            {traffic.length > TRAFFIC_ROWS && trafficRows >= TRAFFIC_ROWS && <p className="emp-muted">{t('ops.traffic.more', { n: TRAFFIC_ROWS })}</p>}
+            {displayedTraffic.length > trafficRows && <div className="ops-more"><button type="button" className="btn" onClick={() => setTrafficRows(rows => Math.min(TRAFFIC_ROWS, rows + TRAFFIC_STEP))}>{t('ops.showMore')}</button></div>}
+            {displayedTraffic.length > TRAFFIC_ROWS && trafficRows >= TRAFFIC_ROWS && <p className="emp-muted">{t('ops.traffic.more', { n: TRAFFIC_ROWS })}</p>}
           </section>
           <details className="ops-fold">
             <summary>{t('ops.blocked.title')}<span className="emp-muted">{topBlocked.length}</span></summary>
@@ -369,7 +372,6 @@ export default function ProxyOperationsSection({ view = 'live', tabs, onOpenAler
         {review && <>
           <p className="decision-domain mono">{review.item.domain}</p>
           {review.item.reason && <p className="decision-reason-text">{review.item.reason}</p>}
-          <DomainSecondOpinion domain={review.item.domain} />
           <form className="ui-form" onSubmit={submitReview}>
             <div className="field" data-invalid={Boolean(reviewError)}>
               <label htmlFor="decision-reason">{t('ops.dialog.reason')}</label>

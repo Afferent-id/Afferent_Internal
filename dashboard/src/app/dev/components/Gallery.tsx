@@ -41,7 +41,7 @@ export default function Gallery() {
   ];
   return (
     <div className="emp-page">
-      <header className="emp-top"><span className="brand">AFFERENT · Component gallery</span><span className="emp-top-tools"><LanguageSwitch /><ThemeToggle /></span></header>
+      <header className="emp-top"><span className="brand">Afferent Reflex · Component gallery</span><span className="emp-top-tools"><LanguageSwitch /><ThemeToggle /></span></header>
       <main className="emp-main" style={{ display: 'grid', gap: 16 }}>
         <PageHeader as="h1" title="Shared parts" description="Every part is shown here in the current theme and language. Use the toggles above to check both themes and both languages." />
         <Section title="Severity badge" note="Symbol, word and colour together. The shape also tells the level without colour."><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{(['critical', 'high', 'medium', 'low', 'info', 'unknown'] as SeverityLevel[]).map(l => <SeverityBadge key={l} level={l} />)}</div></Section>

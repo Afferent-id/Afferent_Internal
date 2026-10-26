@@ -51,14 +51,15 @@ class AfferentLocalTestSuite(unittest.TestCase):
             division="IT",
         )
         auth_service.create_account(
-            email="ciso.regression@demo.local",
+            email="administrator.regression@demo.local",
             password="CisoSecurePassword2026",
-            role="ciso",
+            role="phishing_admin",
             division="IT",
         )
         cls.employee_token = cls._login("employee.regression@demo.local", "EmployeeSecure2026")
-        cls.ciso_token = cls._login("ciso.regression@demo.local", "CisoSecurePassword2026")
-        cls.phishing_admin_token = cls._login("admin@humanfirewall.local", "BootstrapAdmin2026")
+        cls.administrator_token = cls._login("administrator.regression@demo.local", "CisoSecurePassword2026")
+        # Use the account this suite created, independent of app import order.
+        cls.phishing_admin_token = cls.administrator_token
 
     @classmethod
     def tearDownClass(cls):
@@ -113,7 +114,7 @@ class AfferentLocalTestSuite(unittest.TestCase):
             conn.close()
 
     def test_03_compliance_and_dashboard_metrics_preserved(self):
-        headers = {"X-Afferent-Session": self.ciso_token}
+        headers = {"X-Afferent-Session": self.administrator_token}
         compliance = self.client.get("/api/compliance-summary", headers=headers)
         self.assertEqual(compliance.status_code, 200)
         self.assertIn("clause_readiness", compliance.get_json())
@@ -139,7 +140,7 @@ class AfferentLocalTestSuite(unittest.TestCase):
 
     def test_05_employee_cannot_read_another_profile(self):
         response = self.client.get(
-            "/api/user-activity?email=ciso.regression@demo.local",
+            "/api/user-activity?email=administrator.regression@demo.local",
             headers={"X-Afferent-Session": self.employee_token},
         )
         self.assertEqual(response.status_code, 403)
@@ -192,7 +193,7 @@ class AfferentLocalTestSuite(unittest.TestCase):
 
     def test_10_phishing_admin_can_create_every_privileged_role(self):
         headers = {"X-Afferent-Session": self.phishing_admin_token}
-        for role in ("soc", "grc", "ciso"):
+        for role in ("soc", "phishing_admin"):
             with self.subTest(role=role):
                 response = self.client.post(
                     "/api/admin/employees",

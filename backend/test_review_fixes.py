@@ -15,6 +15,15 @@ from services import auth_service, domain_scanner, notification_service, proxy_s
 
 
 class ReviewChecks(unittest.TestCase):
+    def test_llm_is_retired_and_not_replaced_by_vt_live_scanning(self):
+        path = '/api/proxy/second-opinion'
+        self.assertEqual(self.client.get(path).status_code, 401)
+        self.assertEqual(self.client.get(path, headers=self.employee_headers).status_code, 403)
+        headers = self.role_headers('soc')
+        self.assertEqual(self.client.get('/api/proxy/reputation?domain=example.org', headers=headers).status_code, 404)
+        for method in ('get', 'post'):
+            self.assertEqual(getattr(self.client, method)('/api/proxy/second-opinion', headers=headers).status_code, 410)
+
     def setUp(self):
         self.email = f'review.{uuid.uuid4().hex}@demo.test'
         self.password = 'ReviewTestingPassword2026!'
@@ -41,20 +50,20 @@ class ReviewChecks(unittest.TestCase):
         body = {'accountId': account_id, 'reason': 'Lanjutkan training keamanan', 'role': 'soc', 'email': 'spoof@demo.test'}
         self.assertEqual(self.client.post(path, json=body).status_code, 401)
         self.assertEqual(self.client.post(path, json=body, headers=self.employee_headers).status_code, 403)
-        for role in ('soc', 'grc'):
+        for role in ('soc',):
             headers = self.role_headers(role)
             self.assertEqual(self.client.post(path, json=body, headers=headers).status_code, 400)
             # Inspect read authorization without querying a real PostgreSQL.
             with patch.object(notification_service, 'security_inbox', return_value={'employees': []}):
                 self.assertEqual(self.client.get('/api/admin/security-inbox', headers=headers).status_code, 200)
-        headers = self.role_headers('grc')
+        headers = self.role_headers('soc')
         database.adjust_points(self.email, 'IT', -41)  # 59/200
         response = self.client.post(path, json=body, headers=headers)
         self.assertEqual(response.status_code, 202, response.get_json())
         self.assertEqual(self.client.post(path, json=body, headers=headers).status_code, 400)
         with closing(database.get_connection()) as conn:
             audit = conn.execute('SELECT * FROM notification_audit WHERE recipient=?', (self.email,)).fetchone()
-            self.assertEqual(audit['actor_role'], 'grc')
+            self.assertEqual(audit['actor_role'], 'soc')
             self.assertEqual(audit['score'], 59)
             with self.assertRaises(sqlite3.IntegrityError):
                 conn.execute('UPDATE notification_audit SET score=200 WHERE id=?', (audit['id'],))
@@ -113,6 +122,14 @@ class ReviewChecks(unittest.TestCase):
         soc = {'source': 'soc', 'decision': 'block', 'reason': 'Explicit SOC block'}
         with patch.object(proxy_service.proxy_store, 'get_cached_verdict', return_value=soc):
             self.assertEqual(proxy_service._effective_verdict(hostname)['decision'], 'block')
+
+    def test_live_domain_ml_does_not_call_external_scanners(self):
+        from services import ml_service
+        with patch('requests.sessions.Session.request', side_effect=AssertionError('Live ML must stay offline')):
+            result = ml_service.proxy_verdict('https://example.org/some/path')
+        self.assertEqual(result['status'], 'ready')
+        self.assertIn(result['verdict'], {'safe', 'unknown', 'malicious'})
+        self.assertTrue(result['modelVersion'])
 
 
 if __name__ == '__main__':

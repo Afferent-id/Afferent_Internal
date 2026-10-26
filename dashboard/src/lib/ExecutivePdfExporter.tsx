@@ -171,12 +171,12 @@ const ReportPdfDocument: React.FC<ReportPdfDocumentProps> = ({
   markdownContent,
   generatedAt,
 }) => (
-  <Document title={`AFFERENT_${role.toUpperCase()}_Executive_Report`}>
+  <Document title={`Afferent_Reflex_${role.toUpperCase()}_Executive_Report`}>
     <Page size="A4" style={styles.page}>
       {/* Header Banner */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.brandTitle}>AFFERENT</Text>
+          <Text style={styles.brandTitle}>Afferent Reflex</Text>
           <Text style={styles.brandSub}>HUMAN RISK INTELLIGENCE & TELEMETRY PLATFORM</Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
@@ -189,7 +189,7 @@ const ReportPdfDocument: React.FC<ReportPdfDocumentProps> = ({
       <View style={styles.metaBox}>
         <Text style={styles.metaText}>Generated At: {generatedAt}</Text>
         <Text style={styles.metaText}>Classification: CONFIDENTIAL / INTERNAL SECURITY DIRECTIVE</Text>
-        <Text style={styles.metaText}>Compiler Engine: AFFERENT Client Vector Renderer v2.0</Text>
+        <Text style={styles.metaText}>Compiler Engine: Afferent Reflex Client Vector Renderer v2.0</Text>
       </View>
 
       {/* Main Content Body */}
@@ -199,7 +199,7 @@ const ReportPdfDocument: React.FC<ReportPdfDocumentProps> = ({
 
       {/* Footer Page Bar */}
       <View style={styles.footer} fixed>
-        <Text style={styles.footerText}>CONFIDENTIAL | AFFERENT HUMAN RISK PLATFORM</Text>
+        <Text style={styles.footerText}>CONFIDENTIAL | AFFERENT REFLEX HUMAN RISK PLATFORM</Text>
         <Text
           style={styles.footerText}
           render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
@@ -217,7 +217,7 @@ export async function exportExecutivePdf(role: string, markdownContent: string):
   
   const link = document.createElement('a');
   link.href = url;
-  link.download = `AFFERENT_${role.toUpperCase()}_Executive_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+  link.download = `Afferent_Reflex_${role.toUpperCase()}_Executive_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

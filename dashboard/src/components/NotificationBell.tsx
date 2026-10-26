@@ -8,7 +8,7 @@ import { usePreference } from '@/hooks/usePreference';
 import { useI18n } from '@/i18n/I18nProvider';
 import type { WorkQueue } from '@/hooks/useWorkQueue';
 
-type Role = 'employee' | 'soc' | 'grc' | 'ciso' | 'phishing_admin';
+type Role = 'employee' | 'soc' | 'phishing_admin';
 interface MyRequest { id: string; domain: string; status: 'open' | 'allowed' | 'denied' }
 interface Note { key: string; text: string; tab?: string; href?: string }
 
@@ -29,6 +29,7 @@ export default function NotificationBell({ role, onOpenTab, queue }: { role: Rol
       (mine?.requests ?? []).filter(r => r.status !== 'open' && !seen.has(r.id)).forEach(r => list.push({ key: r.id, text: t(r.status === 'allowed' ? 'notif.req.allowed' : 'notif.req.denied', { domain: r.domain }), href: '/' }));
     }
     if (queue && queue.requestsWaiting > 0) list.push({ key: 'staff-requests', text: t('notif.staff.requests', { n: queue.requestsWaiting }), tab: 'inbox' });
+    if (queue && queue.trainingWaiting > 0) list.push({ key: 'training-assessments', text: `${queue.trainingWaiting} assessment(s) need training follow-up`, tab: 'inbox' });
     if (queue && queue.urgentIncidents > 0) list.push({ key: 'staff-urgent', text: t('notif.staff.urgent', { n: queue.urgentIncidents }), tab: 'overview' });
     return list;
   }, [isEmployee, mine, queue, seen, t]);
@@ -42,7 +43,6 @@ export default function NotificationBell({ role, onOpenTab, queue }: { role: Rol
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick); };
   }, [open]);
 
-  if (role === 'phishing_admin') return null;
   const markRead = () => setSeen([...seen, ...(mine?.requests ?? []).filter(r => r.status !== 'open').map(r => r.id)].slice(-50).join(','));
   const label = notes.length ? t('notif.button', { n: notes.length }) : t('notif.button.none');
 

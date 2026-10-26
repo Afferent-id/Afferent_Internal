@@ -3,7 +3,7 @@
  * Everything under src/mocks/ can be deleted together with its single hook in src/proxy.ts.
  */
 
-export const ROLES = ['employee', 'phishing_admin', 'soc', 'grc', 'ciso'] as const;
+export const ROLES = ['employee', 'phishing_admin', 'soc'] as const;
 export type MockRole = (typeof ROLES)[number];
 
 /** normal = full data, empty = no records, loading = slow replies, error = failing replies. */

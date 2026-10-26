@@ -47,8 +47,8 @@ async function responseError(response: Response, fallback: string, t: (key: Mess
 }
 
 /**
- * One block for "protection is not active on this device", with one main action and the technical details folded away.
- * It renders nothing while protection is being checked and nothing once it works, so the page starts with the dashboard.
+ * One connection status block, with technical details folded away.
+ * Keep a verified connection visible without changing the existing probe or heartbeat.
  */
 export default function ProxyConnectionCard() {
   const { t, lang } = useI18n();
@@ -188,25 +188,29 @@ export default function ProxyConnectionCard() {
   };
 
   const visible = protectionBlockVisible({ booting, failedToLoad: Boolean(error), registered: status.registered, probe: probeState });
-  const body = status.registered ? t('proxy.failed.body') : t('proxy.setup.body');
+  const connected = status.registered && probeState === 'connected' && !error;
+  const title = connected ? t('proxy.on.title') : status.registered ? t('proxy.failed.title') : t('proxy.off.title');
+  const body = connected ? t('proxy.on.body') : status.registered ? t('proxy.failed.body') : t('proxy.setup.body');
   const lastChecked = status.lastProxySeenAt ? formatAgo(status.lastProxySeenAt, lang, now) : null;
 
   return (
     <>
       {visible && (
-        <section className="proxy-connect-card pxc pxc-alert" data-tone="bad" aria-labelledby="pxc-title">
+        <section className="proxy-connect-card pxc pxc-alert" data-tone={connected ? 'ok' : 'bad'} aria-labelledby="pxc-title">
           <div className="pxc-head">
             <div className="pxc-main">
-              <span className="pxc-icon" aria-hidden="true"><ShieldAlert size={22} /></span>
+              <span className="pxc-icon" aria-hidden="true">{connected ? <ShieldCheck size={22} /> : <ShieldAlert size={22} />}</span>
               <div>
                 <p className="pxc-eyebrow">{t('proxy.eyebrow')}</p>
-                <h2 id="pxc-title">{t('proxy.off.title')}</h2>
-                <p>{body}</p>
+                <div role="status">
+                  <h2 id="pxc-title">{title}</h2>
+                  <p>{body}</p>
+                </div>
                 {error && <p className="field-error" role="alert">{error}</p>}
               </div>
             </div>
             {status.registered
-              ? <button type="button" className="btn btn-primary" onClick={() => setGuideOpen(true)}><BookOpen size={16} aria-hidden="true" />{t('setup.open')}</button>
+              ? <button type="button" className={connected ? 'btn' : 'btn btn-primary'} onClick={() => setGuideOpen(true)}><BookOpen size={16} aria-hidden="true" />{t('setup.open')}</button>
               : <button type="button" className="btn btn-primary" onClick={activate} disabled={activating || booting}>
                   {activating ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <ShieldCheck size={16} aria-hidden="true" />}
                   {t('emp.next.protect.action')}

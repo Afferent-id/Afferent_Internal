@@ -1,4 +1,4 @@
-"""Reusable SMTP delivery for OTP and future AFFERENT notifications."""
+"""Reusable SMTP delivery for OTP and future Afferent Reflex notifications."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class EmailService:
         self.username = os.environ.get("SMTP_USER", "").strip()
         self.password = os.environ.get("SMTP_PASSWORD", "")
         self.from_address = os.environ.get(
-            "SMTP_FROM_ADDRESS", "AFFERENT Security <security@afferent.local>"
+            "SMTP_FROM_ADDRESS", "Afferent Reflex Security <security@afferent.local>"
         ).strip()
         self.security = os.environ.get("SMTP_SECURITY", "starttls").strip().lower()
         self.timeout = float(os.environ.get("SMTP_TIMEOUT_SECONDS", "10"))
@@ -65,9 +65,9 @@ class EmailService:
             raise EmailDeliveryError("Email OTP tidak dapat dikirim") from exc
 
     def send_login_otp(self, *, to_address: str, otp_code: str, expires_minutes: int) -> None:
-        subject = "Kode verifikasi masuk AFFERENT"
+        subject = "Kode verifikasi masuk Afferent Reflex"
         text = (
-            "Gunakan kode berikut untuk menyelesaikan proses masuk ke AFFERENT:\n\n"
+            "Gunakan kode berikut untuk menyelesaikan proses masuk ke Afferent Reflex:\n\n"
             f"{otp_code}\n\n"
             f"Kode berlaku selama {expires_minutes} menit dan hanya dapat digunakan satu kali. "
             "Abaikan email ini jika Anda tidak melakukan proses masuk."
@@ -75,7 +75,7 @@ class EmailService:
         html = f"""
         <div style="font-family:Poppins,Arial,sans-serif;background:#f4f7fb;padding:32px;color:#122033">
           <div style="max-width:520px;margin:auto;background:white;border:1px solid #dce5ef;border-radius:16px;padding:32px">
-            <div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#1971c2">AFFERENT SECURITY</div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#1971c2">Afferent Reflex SECURITY</div>
             <h1 style="font-size:22px;margin:14px 0 8px">Verifikasi proses masuk</h1>
             <p style="line-height:1.6;color:#526174">Gunakan kode berikut untuk menyelesaikan proses masuk Anda.</p>
             <div style="font:700 34px/1.2 ui-monospace,monospace;letter-spacing:.24em;text-align:center;background:#eef6ff;border-radius:12px;padding:20px;margin:24px 0;color:#0b5cab">{otp_code}</div>

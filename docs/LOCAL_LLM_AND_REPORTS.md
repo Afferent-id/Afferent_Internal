@@ -1,5 +1,13 @@
 # Local SOC advice and employee reports
 
+## Runtime notice: 26 October 2026
+
+Local LLM/Ollama and its Compose profile have been retired. Historical LLM
+commands and ENV examples below are retained for the experiment record and
+must not be used to start the current stack. Private file and explicit URL
+scanning remain available. Live proxy traffic uses local domain ML only.
+See [current setup](../README_SETUP.md).
+
 ## Boundaries
 
 - Employee **Scan URL** and **Report a link** use the same VirusTotal v3 + urlscan reputation lookup. They do not call the proxy ML model or the local LLM. Missing records, disabled keys and provider failures remain **Unknown**. Scanning alone creates no report, reward or proxy policy.

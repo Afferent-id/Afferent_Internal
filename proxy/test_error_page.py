@@ -13,7 +13,8 @@ def page():
     assert 'data:font/woff2;base64,' in html
     assert 'fonts.googleapis.com' not in html and '<script' not in html
     assert '%H' in html and '%h' in html
-    assert 'BLOCKED BY AFFERENT' in html
+    assert 'BLOCKED BY AFFERENT REFLEX' in html
+    assert 'Afferent Reflex' in html
     assert '%%20' in render(template, font, 'http://lab.test:3000/a%20b')
     try:
         render(template, font, 'javascript:alert(1)')

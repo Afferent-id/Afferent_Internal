@@ -43,7 +43,10 @@ class CampaignChecks(unittest.TestCase):
         cls.client = app.test_client()
         cls.email = 'campaign-employee@demo.test'
         auth_service.create_account(email=cls.email, password='EmployeeTesting2026!', role='employee', division='IT')
-        cls.admin = session('campaign-admin@demo.test', 'CampaignTesting2026!')
+        # Discovery may have imported app before this module's bootstrap ENV.
+        admin_email = f'campaign-admin-{uuid.uuid4().hex}@demo.test'
+        auth_service.create_account(email=admin_email, password='CampaignTesting2026!', role='phishing_admin', division='IT')
+        cls.admin = session(admin_email, 'CampaignTesting2026!')
         cls.employee = session(cls.email, 'EmployeeTesting2026!')
 
     def test_resources_empty_and_rbac_fail_closed(self):

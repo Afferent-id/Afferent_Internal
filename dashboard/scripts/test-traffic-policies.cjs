@@ -27,7 +27,7 @@ for (const label of ['traffic.tab.live', 'traffic.tab.policies', 'traffic.tab.th
 assert.ok(/badge: openAlerts/.test(wrapper) && /badge: threats/.test(wrapper), 'live and threat tabs carry badges so urgent work is visible');
 assert.ok(/pushState/.test(wrapper) && /popstate/.test(wrapper), 'tabs are in the URL and Back works');
 // The same actions stay reachable and keep their behaviour: one component still owns state, dialog and requests.
-for (const needle of ["fetch('/api/proxy/manual-decision'", '/api/proxy/alerts/${alert.id}/decision', '<DomainSecondOpinion', '<Dialog open={review !== null}', 'submitReview', 'ops.dialog.confirmBlock']) assert.ok(ops.includes(needle), `kept: ${needle}`);
+for (const needle of ["fetch('/api/proxy/manual-decision'", '/api/proxy/alerts/${alert.id}/decision', '<Dialog open={review !== null}', 'submitReview', 'ops.dialog.confirmBlock']) assert.ok(ops.includes(needle), `kept: ${needle}`);
 assert.ok(/id="traffic-panel-live"[^>]*hidden=\{view !== 'live'\}/.test(ops) && /id="traffic-panel-policies"[^>]*hidden=\{view !== 'policies'\}/.test(ops), 'panels use the tab ids and stay mounted while hidden (SSE and state keep running)');
 assert.ok(/role="tabpanel" id="traffic-panel-live" aria-labelledby="traffic-tab-live"/.test(ops), 'panel is labelled by its tab');
 assert.ok(/<TrafficPolicies/.test(soc) && !/<ProxyOperationsSection/.test(soc), 'SOC page uses the new page; role and route unchanged');
@@ -40,5 +40,5 @@ const css = read('src/app/ui.css');
 assert.match(css, /\.tabs \{[^}]*overflow-x: auto/, 'tab row scrolls sideways on phones instead of overflowing the page');
 assert.ok(/useScrollCue/.test(ops) && /role="region" aria-label=\{t\('ops\.alerts\.caption'\)\} tabIndex=\{0\}/.test(ops), 'alerts and traffic tables scroll with a cue and keyboard access on phones');
 assert.match(css, /\.ops-page \.table-wrap \.data-table :is\(th, td\):last-child \{ position: sticky; right: 0/, 'the Action column stays in view on phones');
-for (const [lang, text] of [['en', 'Sign-in & devices'], ['id', 'Masuk & perangkat']]) assert.equal(messages.MESSAGES[lang]['traffic.tab.audit'], text, `${lang} label of the fourth tab`);
+for (const [lang, text] of [['en', 'Sign-in activity'], ['id', 'Aktivitas login']]) assert.equal(messages.MESSAGES[lang]['traffic.tab.audit'], text, `${lang} label matches the authentication data actually collected`);
 console.log('PASS: Traffic and policies has four URL-addressable tabs with badges, keeps every action and adds no endpoint');

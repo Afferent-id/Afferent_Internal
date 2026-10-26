@@ -14,7 +14,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { MessageKey } from '@/i18n/messages';
 
 export interface AIIntelligenceSectionProps {
-  role?: 'soc' | 'ciso' | 'grc' | 'phishing_admin';
+  role?: 'soc' | 'phishing_admin';
   markdownReport?: string;
   isLoading?: boolean;
   onRefresh?: () => void;
@@ -168,7 +168,7 @@ export const AIIntelligenceSection: React.FC<AIIntelligenceSectionProps> = ({ ro
     const url = URL.createObjectURL(new Blob([activeReport], { type: 'text/markdown;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `AFFERENT_${role.toUpperCase()}_Executive_Report_${new Date().toISOString().slice(0, 10)}.md`;
+    link.download = `Afferent_Reflex_${role.toUpperCase()}_Executive_Report_${new Date().toISOString().slice(0, 10)}.md`;
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
@@ -261,7 +261,7 @@ export const AIIntelligenceSection: React.FC<AIIntelligenceSectionProps> = ({ ro
           </div>
           {heatmapLoading ? <StateMessage variant="loading" /> : error && users.length === 0 ? null : (
             <div className="incident-split" data-wide={wide}>
-              <DataTable caption={t('ai.title')} columns={columns} rows={users} rowKey={u => u.email} selectedKey={selected} onRowClick={u => void selectUser(u.email)} empty={<StateMessage variant="empty" title={t('ai.empty.title')} why={t('ai.empty.why')} />} />
+              <DataTable caption={t('ai.title')} columns={columns} rows={users} rowKey={u => u.email} selectedKey={selected} onRowClick={u => void selectUser(u.email)} pageSize={10} density="comfortable" empty={<StateMessage variant="empty" title={t('ai.empty.title')} why={t('ai.empty.why')} />} />
               {wide
                 ? <aside className="incident-panel" aria-live="polite">{detail ?? <StateMessage variant="empty" compact title={t('ai.select.title')} why={t('ai.select.why')} />}</aside>
                 : <Dialog open={Boolean(active)} onClose={() => setSelected(null)} size="lg" title={active?.email ?? ''}>{detail}</Dialog>}

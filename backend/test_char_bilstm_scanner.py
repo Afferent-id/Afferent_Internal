@@ -13,6 +13,8 @@ import char_bilstm_scanner
 class TestCharBiLSTMScanner(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Other discovered modules set their own service credentials at import.
+        os.environ["SERVICE_API_KEY"] = "test-service-key-bilstm"
         app.config["TESTING"] = True
         cls.client = app.test_client()
         cls.headers = {"Authorization": "Bearer test-service-key-bilstm"}
@@ -55,24 +57,22 @@ class TestCharBiLSTMScanner(unittest.TestCase):
         self.assertEqual(data["data"]["verdict"], "malicious")
         self.assertEqual(data["data"]["action"], "BLOCK")
 
-    def test_06_unified_analyze_threat_incorporates_bilstm(self):
+    def test_06_retired_unified_endpoint_does_not_run_analysis(self):
         from unittest.mock import patch
-        # Mock external APIs to verify that Char-BiLSTM works standalone/zero-day
-        with patch("integrations.scan_virustotal", return_value={"success": False, "provider": "virustotal", "data": None}), \
-             patch("integrations.scan_urlscan", return_value={"success": False, "provider": "urlscan", "data": None}):
+        # Employee reports and provider-only checks use separate authenticated APIs.
+        with patch("integrations.scan_virustotal") as vt, \
+             patch("integrations.scan_urlscan") as urlscan, \
+             patch("char_bilstm_scanner.scan_url_dl") as model:
             res = self.client.post(
                 "/api/threat/analyze",
                 json={"indicator": "http://slot-gacor-maxwin-jp.vip/login"},
                 headers=self.headers
             )
-            self.assertEqual(res.status_code, 200)
-            data = res.get_json()
-            self.assertTrue(data.get("success"))
-            evidence = data.get("analysis", {}).get("evidence", {})
-            self.assertIn("char_bilstm", evidence)
-            self.assertIsNotNone(evidence["char_bilstm"])
-            self.assertEqual(evidence["char_bilstm"]["verdict"], "malicious")
-            self.assertEqual(data.get("policy", {}).get("action"), "block")
+            self.assertEqual(res.status_code, 410)
+            self.assertIn("error", res.get_json())
+            vt.assert_not_called()
+            urlscan.assert_not_called()
+            model.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -38,7 +38,7 @@ class TechnicalDebtChecks(unittest.TestCase):
 
     def test_report_cache_atomic_reward_and_duplicate(self):
         url = 'https://report.example.test/path'
-        analysis = {'analysisVersion': 2, 'providers': ['virustotal'], 'verdict': 'malicious', 'severity': 'high', 'confidence': 90, 'evidence': {}}
+        analysis = {'analysisVersion': 4, 'providers': ['virustotal'], 'verdict': 'malicious', 'severity': 'high', 'confidence': 90, 'evidence': {}, 'providerStatus': {'virustotal': {'state': 'ready', 'statusCode': 200}}}
         database.save_threat_cache(url, 'url', analysis)
         redis = Mock()
         redis.lock.return_value.acquire.return_value = True
@@ -56,7 +56,7 @@ class TechnicalDebtChecks(unittest.TestCase):
             reports = self.client.get('/api/reports', headers=self.headers).get_json()['reports']
             self.assertEqual(len(reports), 1)
             self.assertEqual(reports[0]['email'], self.email)
-            self.assertEqual(reports[0]['status'], 'under review')
+            self.assertEqual(reports[0]['status'], 'submitted')
         self.assertEqual(database.get_user_history(self.email)['points'], before + 15)
         self.assertEqual(database.get_user_history(self.email)['reports_count_malicious'], 1)
 

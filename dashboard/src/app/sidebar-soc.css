@@ -1,22 +1,26 @@
-/* SOC sidebar: the dark navy of the earlier design, in both themes.
-   The sidebar re-declares the dark palette for everything inside it, so every shared sidebar rule keeps working. */
-.shell[data-role="soc"] .sb,
-:root[data-theme="dark"] .shell[data-role="soc"] .sb {
-  --sidebar-bg: #0b1a2f;
-  --sidebar-text: #c5d4e6;
-  --sidebar-hover: #162b4a;
-  --sidebar-active-bg: #1b3559;
-  --text-primary: #f2f6fc; --text-secondary: #c5d4e6; --text-muted: #9fb2c9;
+/* Original navy-to-teal sidebar palette, shared by all admin roles.
+   Only paint tokens are scoped here; shell geometry stays in ui.css. */
+.shell[data-role] .sb,
+:root[data-theme="dark"] .shell[data-role] .sb {
+  --sidebar-bg: #142945;
+  --sidebar-gradient: linear-gradient(170deg, #142945, #183959 66%, #194958);
+  --sidebar-text: #bfcede;
+  --sidebar-hover: rgba(255, 255, 255, .07);
+  --sidebar-active-bg: #244864;
+  --text-primary: #edf5ff; --text-secondary: #bfcede; --text-muted: #abc3d9;
   --bg-surface: #13253f; --bg-elevated: #14284a; --bg-hover: #1a3157;
   --border: #243d63; --border-hover: #3a5578; --border-control: #6482a8;
   --accent: #7db3ff; --accent-strong: #a8cdff; --focus-ring: #8cc4ff; --on-accent: #06101e;
   --pop-blue: #60a5fa;   --pop-blue-bg: rgba(96, 165, 250, .2);  --pop-blue-text: #dbeafe;
-  --pop-teal: #2dd4bf;   --pop-amber: #fbbf24;  --pop-violet: #a78bfa; --pop-pink: #f472b6;
+  --pop-teal: #7dcbd5;   --pop-amber: #fbbf24;  --pop-violet: #a6baf0; --pop-pink: #7dcbd5;
   --sev-ok: #86efac; --sev-critical: #ff8575;
   color: var(--sidebar-text);
+  background: var(--sidebar-gradient);
   border-right-color: #1c3050;
   color-scheme: dark;
 }
-:root[data-theme="dark"] .shell[data-role="soc"] .sb { --sidebar-bg: #07111f; --border: #1e3250; --bg-surface: #0f2038; --bg-elevated: #112440; }
-.shell[data-role="soc"] .sb .sb-link[aria-current="page"] { color: #ffffff; }
-.shell[data-role="soc"] .sb .sb-search { background: var(--bg-elevated); border-color: var(--border); }
+:root[data-theme="dark"] .shell[data-role] .sb { --sidebar-bg: #0b1a2f; --sidebar-gradient: linear-gradient(170deg, #0b1a2f, #112d45 66%, #123e49); --border: #1e3250; --bg-surface: #0f2038; --bg-elevated: #112440; }
+.shell[data-role] .sb nav button svg { color: #abc3d9; }
+.shell[data-role] .sb .sb-link[aria-current="page"] { color: #ffffff; background: linear-gradient(110deg, rgba(85, 151, 216, .27), rgba(92, 180, 175, .15)); border-color: rgba(159, 201, 235, .24); }
+.shell[data-role] .sb .sb-link[aria-current="page"] svg { color: #9ad8ee; }
+.shell[data-role] .sb .sb-search { background: var(--bg-elevated); border-color: var(--border); }

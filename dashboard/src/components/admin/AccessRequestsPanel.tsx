@@ -86,7 +86,7 @@ export default function AccessRequestsPanel({ canDecide, onChanged }: { canDecid
       {isLoading && !data && <StateMessage variant="loading" />}
       {error && <StateMessage variant="error" title={t('acc.error.title')} why={t('acc.error.why')} action={{ label: t('common.retry'), onClick: refresh }} compact />}
       {data && (
-        <DataTable caption={t('acc.caption')} columns={columns} rows={rows} rowKey={r => r.id} onRowClick={open} selectedKey={selected?.id}
+        <DataTable caption={t('acc.caption')} columns={columns} rows={rows} rowKey={r => r.id} onRowClick={open} selectedKey={selected?.id} pageSize={10} density="comfortable"
           empty={<StateMessage variant="empty" title={t('acc.empty.title')} why={t(status === 'open' ? 'acc.empty.open' : 'acc.empty.filtered')} />} />
       )}
 

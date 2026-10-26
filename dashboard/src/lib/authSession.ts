@@ -14,6 +14,4 @@ export const ROLE_ROUTES: Record<string, string> = {
   employee: '/',
   phishing_admin: '/dashboard/phishing-admin',
   soc: '/dashboard/soc',
-  grc: '/dashboard/grc',
-  ciso: '/dashboard/ciso',
 };

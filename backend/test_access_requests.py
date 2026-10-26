@@ -23,7 +23,7 @@ class AccessRequests(unittest.TestCase):
         self.employee_email, self.employee = make_account('employee')
         _, self.other_employee = make_account('employee')
         self.soc_email, self.soc = make_account('soc')
-        _, self.grc = make_account('grc')
+        _, self.admin = make_account('phishing_admin')
         self.redis = Mock()
         self.redis.incr.return_value = 1
         for target in ('redis_client', 'publish_alert'):
@@ -86,8 +86,8 @@ class AccessRequests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/admin/access-requests', headers=self.employee).status_code, 403)
         self.assertEqual(self.client.post('/api/access-requests', json={'domain': self.domain, 'reason': 'Please allow it.'}, headers=self.soc).status_code, 403)
         self.assertEqual(self.client.get('/api/admin/access-requests').status_code, 401)
-        self.assertEqual(self.client.get('/api/admin/access-requests', headers=self.grc).status_code, 200)
-        self.assertEqual(self.decide(request_id, 'allow', headers=self.grc).status_code, 403)
+        self.assertEqual(self.client.get('/api/admin/access-requests', headers=self.admin).status_code, 403)
+        self.assertEqual(self.decide(request_id, 'allow', headers=self.admin).status_code, 403)
         self.assertEqual(self.decide(request_id, 'allow', headers=self.employee).status_code, 403)
 
     def test_staff_list_has_counts_and_requester(self):

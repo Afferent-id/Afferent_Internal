@@ -7,6 +7,11 @@ from quiz_explanations import EXPLANATIONS
 
 
 class QuizExplanation(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Earlier authentication suites can remove their temporary database.
+        database.init_db()
+
     def test_every_seeded_question_has_an_explanation(self):
         conn = database.get_connection()
         try:

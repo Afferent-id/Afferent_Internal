@@ -88,18 +88,16 @@ def update_incident(ticket_id):
     if not isinstance(data, dict) or not ('status' in data or 'assignee' in data):
         return jsonify({"error": "Send a status and/or an assignee."}), 400
     identity = current_identity()
-    assignee = data.get('assignee')
-    if assignee is not None:
-        if not isinstance(assignee, str):
-            return jsonify({"error": "assignee must be text."}), 400
-        assignee = identity.email if assignee.strip().lower() == 'me' else ('' if not assignee.strip() else None)
-        if assignee is None:
-            return jsonify({"error": "assignee must be 'me' or empty."}), 400
+    from services import incident_service
     try:
-        updated = database.apply_incident_change(ticket_id, identity.email, identity.role,
-                                                 status=data.get('status'), note=data.get('note'), assignee=assignee)
+        updated = incident_service.change(ticket_id, identity, status=data.get('status'),
+            note=data.get('note'), assignee=data.get('assignee'), resolution=data.get('resolution'))
+    except incident_service.IncidentConflict as e:
+        return jsonify({'error': str(e), 'code': 'INCIDENT_CONFLICT'}), 409
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except Exception:
+        return jsonify({'error': 'The policy could not be applied. The incident stays open; retry with the same decision.'}), 503
 
     if not updated:
         return jsonify({"error": f"Incident '{ticket_id}' was not found."}), 404
@@ -108,13 +106,13 @@ def update_incident(ticket_id):
 
 
 @incidents_bp.route('/api/incidents/<ticket_id>/events', methods=['GET'])
-@require_roles('soc', 'ciso', 'grc')
+@require_roles('soc')
 def incident_events(ticket_id):
     return jsonify({"events": database.list_incident_events(ticket_id)}), 200
 
 
 @incidents_bp.route('/api/incidents', methods=['GET'])
-@require_roles('soc', 'ciso', 'phishing_admin', 'grc')
+@require_roles('soc', 'phishing_admin')
 def list_incidents():
     source_type = request.args.get('source_type')
     status = request.args.get('status')

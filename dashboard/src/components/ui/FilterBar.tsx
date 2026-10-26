@@ -34,7 +34,7 @@ export default function FilterBar({ search, selects = [], activeCount = 0, onCle
       {selects.map(select => (
         <label key={select.id} className="filter-select">
           <span className="visually-hidden">{select.label}</span>
-          <select value={select.value} onChange={event => select.onChange(event.target.value)}>
+          <select name={select.id} value={select.value} onChange={event => select.onChange(event.target.value)}>
             {select.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </label>

@@ -9,7 +9,7 @@ const luminance = hex => {
 };
 const ratio = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
 const block = start => css.slice(css.indexOf(start), css.indexOf('\n}', css.indexOf(start)));
-const themes = { light: { css: block(':root {'), surface: '#ffffff' }, dark: { css: block('[data-theme="dark"] {'), surface: '#111f33' } };
+const themes = { light: { css: block(':root {'), surface: '#ffffff' }, dark: { css: block('[data-theme="dark"] {'), surface: '#152236' } };
 const series = ['critical', 'high', 'medium', 'ok', 'low'];
 for (const [name, theme] of Object.entries(themes)) {
   for (const key of series) {

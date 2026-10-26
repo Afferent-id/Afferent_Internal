@@ -156,12 +156,12 @@ export default function AuthPage() {
 
   return (
     <main className="login-shell">
-      <section className="login-story" aria-label="AFFERENT platform overview">
+      <section className="login-story" aria-label="Afferent Reflex platform overview">
         <div className="login-story-grid" />
         <div className="login-brand">
           <Logo variant="mark" size={48} />
           <div>
-            <span>AFFERENT</span>
+            <span>Afferent <span className="brand-reflex">Reflex</span></span>
             <small>Team security, in one place</small>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function AuthPage() {
 
       <section className="login-panel">
         <div className="login-card">
-          <div className="login-mobile-brand"><Logo variant="mark" size={42} /><span>AFFERENT</span></div>
+          <div className="login-mobile-brand"><Logo variant="mark" size={42} /><span>Afferent <span className="brand-reflex">Reflex</span></span></div>
 
           <div className="login-progress" aria-label={t('auth.steps')}>
             <div className={`login-step ${step === 'credentials' ? 'active' : 'completed'}`}>

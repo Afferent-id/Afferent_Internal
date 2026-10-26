@@ -22,5 +22,5 @@ for (const key of new Set(files.flatMap(f => [...fs.readFileSync(f, 'utf8').matc
   for (const lang of ['en', 'id']) assert.ok(messages[lang][key], `${lang} text for ${key}`);
 }
 for (const lang of ['en', 'id']) for (const key of ['state.error.title', 'state.error.why', 'state.empty.title', 'state.loading', 'common.retry']) assert.ok(messages[lang][key], `${lang} ${key}`);
-for (const page of ['soc', 'grc', 'ciso', 'phishing-admin']) assert.ok(/loadState\(/.test(fs.readFileSync(`src/app/dashboard/${page}/page.tsx`, 'utf8')), `${page} page passes feed states down`);
+for (const page of ['soc', 'phishing-admin']) assert.ok(/loadState\(/.test(fs.readFileSync(`src/app/dashboard/${page}/page.tsx`, 'utf8')), `${page} page passes feed states down`);
 console.log('PASS: every list, table and chart tells loading, empty and error apart (EN and ID); a failed refresh keeps old data');

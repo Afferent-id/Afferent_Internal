@@ -1299,24 +1299,6 @@
   font-weight: 600;
 }
 
-.filter-select {
-  background: var(--bg-deep);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  padding: 8px 12px;
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  outline: none;
-  cursor: pointer;
-  width: 100%;
-  transition: border-color var(--transition-fast);
-}
-
-.filter-select:focus {
-  border-color: var(--accent);
-}
-
 /* ── App Shell Layout ─────────────────────────────────────────── */
 .app-shell {
   display: grid;

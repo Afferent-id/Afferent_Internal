@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Search, Flag, FileText, RefreshCw, ShieldCheck, ShieldAlert, Send, Loader2 } from 'lucide-react';
+import { Search, Flag, FileText, RefreshCw, ShieldCheck, ShieldAlert, Send, Loader2, Upload, X, ChevronRight } from 'lucide-react';
 import { useI18n } from '@/i18n/I18nProvider';
 import type { MessageKey } from '@/i18n/messages';
 import ThreatEvidence, { EmployeeReport, FileScan, ThreatAnalysis } from './ThreatEvidence';
+import './file-upload.css';
+import './scan-results.css';
 
 const CODES = ['RATE_LIMITED', 'DESCRIPTION_TOO_LONG', 'IN_PROGRESS', 'CONSENT_REQUIRED', 'FILE_REQUIRED', 'FILE_TOO_LARGE', 'FILE_EMPTY', 'QUEUE_FULL', 'INVALID_URL'];
 
@@ -41,7 +43,41 @@ export default function EmployeeUrlScanner({ onReportComplete }: { onReportCompl
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [scan, setScan] = useState<ThreatAnalysis | null>(null);
+  const pendingScanId = scan?.pending ? scan.scanId : undefined;
+  useEffect(() => {
+    if (!pendingScanId) return;
+    const controller = new AbortController();
+    let inFlight = false;
+    const timer = window.setInterval(async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const response = await fetch(`/api/threat/scan?scanId=${pendingScanId}`, { signal: controller.signal, cache: 'no-store' });
+        const body = await response.json();
+        if (response.ok && !controller.signal.aborted) setScan(body.data);
+      } catch { /* Keep the pending result; a later status read can recover. */ }
+      finally { inFlight = false; }
+    }, 5000);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [pendingScanId]);
   const [reports, setReports] = useState<EmployeeReport[]>([]);
+  const pendingReports = reports.some(item => item.analysis?.pending);
+  useEffect(() => {
+    if (!pendingReports) return;
+    const controller = new AbortController();
+    let inFlight = false;
+    const timer = window.setInterval(async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const response = await fetch('/api/reports', { signal: controller.signal, cache: 'no-store' });
+        const data = await response.json();
+        if (response.ok && !controller.signal.aborted) setReports(data.reports || []);
+      } catch { /* Retry status only; never re-submit the report. */ }
+      finally { inFlight = false; }
+    }, 5000);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [pendingReports]);
   const [fileScans, setFileScans] = useState<FileScan[]>([]);
   const [selectedFileId, setSelectedFileId] = useState('');
   const [history, setHistory] = useState<'reports' | 'files'>('reports');
@@ -141,7 +177,22 @@ export default function EmployeeUrlScanner({ onReportComplete }: { onReportCompl
     </div>
     <p className="debt-help">{mode === 'scan' ? t('scan.help.check') : mode === 'file' ? t('scan.help.file') : t('scan.help.report')}</p>
     <form className="debt-form" onSubmit={submit}>
-      {mode === 'file' ? <label key="file" className="file-upload">{t('scan2.file.choose')}<input ref={fileInput} type="file" required onChange={event => { setFile(event.target.files?.[0] || null); setSelectedFileId(''); setNotice(''); }} /><small>{file ? file.name + ' · ' + (file.size / 1024).toFixed(0) + ' KB' : t('scan2.file.hint', { mb: Math.floor(fileMaxBytes / 1024 / 1024) })}</small></label>
+      {mode === 'file' ? <div key="file" className="file-upload" role="group" aria-label={t('scan2.file.choose')}>
+        <span className="file-upload-label">{t('scan2.file.choose')}</span>
+        <div className="file-upload-zone" data-selected={Boolean(file)} data-disabled={busy}>
+          <span className="file-upload-icon" aria-hidden="true"><FileText size={24} strokeWidth={1.7} /></span>
+          <div className="file-upload-copy" aria-live="polite"><strong title={file?.name}>{file ? file.name : t('scan2.file.placeholder')}</strong>
+            {file && <small>{file.size < 1024 ? `${file.size} B` : file.size < 1024 * 1024 ? `${(file.size / 1024).toFixed(1)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`}</small>}
+          </div>
+          <div className="file-upload-actions">
+            <label className="btn btn-primary file-upload-browse"><Upload size={16} aria-hidden="true" /><span>{t(file ? 'scan2.file.change' : 'scan2.file.browse')}</span>
+              <input ref={fileInput} type="file" className="file-upload-native" aria-label={t(file ? 'scan2.file.change' : 'scan2.file.browse')} required disabled={busy} onChange={event => { setFile(event.target.files?.[0] || null); setSelectedFileId(''); setNotice(''); }} />
+            </label>
+            {file && <button type="button" className="btn iconbtn file-upload-remove" disabled={busy} aria-label={t('scan2.file.remove')} title={t('scan2.file.remove')} onClick={() => { setFile(null); setSelectedFileId(''); setNotice(''); if (fileInput.current) fileInput.current.value = ''; }}><X size={16} aria-hidden="true" /></button>}
+          </div>
+        </div>
+        <small className="file-upload-help">{t('scan2.file.hint', { mb: Math.floor(fileMaxBytes / 1024 / 1024) })}</small>
+      </div>
         : <label key="url">{t('scan.url')}<input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://example.com/path" required maxLength={4096} autoComplete="off" /></label>}
       {mode === 'report' && <label>{t('scan2.description')} ({t('scan2.optional')})<textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={2000} rows={3} /></label>}
       {mode === 'file' ? <label key="consent" className="upload-consent"><input type="checkbox" required checked={consent} onChange={event => setConsent(event.target.checked)} /><span>{t('scan2.consent')}</span></label>
@@ -150,14 +201,14 @@ export default function EmployeeUrlScanner({ onReportComplete }: { onReportCompl
     </form>
     {error && <p role="alert" className="debt-error">{error}</p>}
     {notice && <p role="status" className="debt-notice">{notice}</p>}
-    {fileResult && (mode === 'file' || fileThreat) && <div className="file-scan-result" data-verdict={fileResult.status === 'pending' ? 'pending' : fileResult.verdict} role={fileThreat ? 'alert' : 'status'}>
+    {fileResult && (mode === 'file' || fileThreat) && <div id="file-scan-result" className="file-scan-result" data-verdict={fileResult.status === 'pending' ? 'pending' : fileResult.verdict} role={fileThreat ? 'alert' : 'status'}>
       {fileThreat ? <ShieldAlert size={24} aria-hidden="true" /> : fileResult.status === 'pending' ? <Loader2 size={24} className="spin" aria-hidden="true" /> : fileResult.verdict === 'clean' ? <ShieldCheck size={24} aria-hidden="true" /> : <FileText size={24} aria-hidden="true" />}
       <div><strong>{fileScanLabel(fileResult, t)}</strong><p>{fileResult.file_name}</p>
       <p>{fileThreat ? t('scan2.file.flagged') : fileResult.status === 'pending' ? t('scan2.file.waiting') : fileResult.verdict === 'clean' ? t('scan2.file.cleanNote') : t('scan2.file.noVerdict')}</p>
       <ThreatEvidence analysis={fileResult.analysis} /></div>
     </div>}
     {scan && <div className="debt-result" role="status">
-      <strong>{scan.verdict === 'unknown' ? t('scan2.url.unknown') : (['malicious', 'suspicious', 'clean'].includes(scan.verdict) ? t(`scan2.url.verdict.${scan.verdict}` as MessageKey) : scan.verdict)}</strong>
+      <strong>{scan.pending ? 'Analysis queued — results update here' : scan.verdict === 'unknown' ? t('scan2.url.unknown') : (['malicious', 'suspicious', 'clean'].includes(scan.verdict) ? t(`scan2.url.verdict.${scan.verdict}` as MessageKey) : scan.verdict)}</strong>
       <ThreatEvidence analysis={scan} />
       <p>{t('scan2.url.notDecision')}</p>
     </div>}
@@ -170,7 +221,11 @@ export default function EmployeeUrlScanner({ onReportComplete }: { onReportCompl
     </> : <>
       <p className="debt-help">{t('scan.files.hint')}</p>
       {!fileScans.length && <p className="debt-help">{t('scan.none.files')}</p>}
-      <ul className="employee-report-list">{fileScans.map(item => <li key={item.id}><div><strong>{item.file_name}</strong><small>{Math.ceil(item.file_size / 1024)} KB · {item.created_at} UTC</small><span className="file-scan-label" data-verdict={item.verdict}>{fileScanLabel(item, t)}</span><ThreatEvidence analysis={item.analysis} /><button type="button" className="btn" onClick={() => { setSelectedFileId(item.id); setMode('file'); setError(''); setNotice(''); }}>{t('scan2.view')}</button></div><span className="badge">{item.status === 'pending' ? t('scan2.state.pending') : item.status === 'unknown' ? t('scan2.state.unknown') : t('scan2.state.done')}</span></li>)}</ul>
+      <ul className="employee-report-list file-scan-history">{fileScans.map(item => <li key={item.id} data-selected={item.id === selectedFileId} data-verdict={item.status === 'pending' ? 'pending' : item.verdict}>
+        <div className="file-history-heading"><FileText size={20} aria-hidden="true" /><strong>{item.file_name}</strong></div>
+        <small className="file-history-meta">{Math.ceil(item.file_size / 1024)} KB · {item.created_at} UTC</small>
+        <div className="file-history-footer"><span className="file-scan-label">{fileScanLabel(item, t)}</span><button type="button" className="btn" aria-controls="file-scan-result" onClick={() => { setSelectedFileId(item.id); setMode('file'); setError(''); setNotice(''); }}>{t('scan2.view')}<ChevronRight size={14} aria-hidden="true" /></button></div>
+      </li>)}</ul>
     </>}
     </aside></div>
   </section>;

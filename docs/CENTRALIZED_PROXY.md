@@ -255,3 +255,16 @@ Open the dashboard from Kali with the Windows host LAN address, for example
 `/api/config` derives the browser-facing API/proxy hostname from the incoming
 dashboard request, so no employee VM IP is hardcoded. Limit TCP 3000, 5000,
 and 3128 to the private bridged subnet using Windows Firewall.
+
+## Afferent Reflex: ML-only live verdicts
+
+Live traffic uses cached SOC policies first, then the local domain ML model.
+No VirusTotal, urlscan, or local LLM request is made for live traffic, either
+synchronously or in the background. SOC manual Block/Allow remains authoritative
+and uses the existing append-only audit and SSE path.
+
+VirusTotal/urlscan remain available for explicit employee URL scan/report
+actions; VirusTotal file scans remain private to the employee. They do not feed
+the proxy's automatic verdict pipeline. Local LLM/Ollama has been removed from
+the active stack; old model volumes and training artifacts remain offline.
+The authenticated `/api/proxy/second-opinion` endpoint returns 410.

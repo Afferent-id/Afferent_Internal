@@ -16,6 +16,10 @@ export interface Incident {
   status: string;
   /** Email of the SOC analyst who owns it, if any. */
   assignee?: string | null;
+  reporter?: string | null;
+  origin?: 'employee_report' | 'legacy';
+  resolution?: string | null;
+  resolutionReason?: string | null;
 }
 
 export interface IncidentEvent {
@@ -127,6 +131,9 @@ export interface ComplianceSummary {
 }
 
 export interface AdminLoginEvent {
+  event_type?: string;
+  success?: boolean | number;
+  role?: string;
   id: number;
   email: string;
   division: string;
@@ -162,7 +169,7 @@ export interface LeaderboardResponse {
 export interface EmployeeAccount {
   email: string;
   divisi: string;
-  role?: 'employee' | 'phishing_admin' | 'soc' | 'grc' | 'ciso';
+  role?: 'employee' | 'phishing_admin' | 'soc';
   has_account: number | boolean;
   points: number;
   is_active: number;
@@ -174,14 +181,12 @@ export interface Division {
 
 /* ── Role Types ────────────────────────────────────────── */
 
-export type AdminRole = 'phishing_admin' | 'soc' | 'grc' | 'ciso';
+export type AdminRole = 'phishing_admin' | 'soc';
 
 /** Map each RBAC role to its dashboard route */
 export const ROLE_ROUTES: Record<AdminRole, string> = {
   phishing_admin: '/dashboard/phishing-admin',
   soc: '/dashboard/soc',
-  grc: '/dashboard/grc',
-  ciso: '/dashboard/ciso',
 };
 
 /* ── Helper Functions ──────────────────────────────────── */

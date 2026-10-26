@@ -23,7 +23,7 @@ const SRC: Record<LogoVariant, string> = {
 const NATIVE_RATIO = 848 / 898; // height / width from the source export
 
 /**
- * Afferent animated logo — wraps the actual logo asset (not a redrawn
+ * Afferent Reflex animated logo — wraps the actual logo asset (not a redrawn
  * vector) so it's a guaranteed pixel-perfect match, with CSS-only motion:
  *
  * - "hero": one-shot bouncy pop-in + settle. Landing / login page.
@@ -44,7 +44,7 @@ export default function AnimatedLogo({
     <span className={`hf-logo-wrap hf-${variant} ${className}`}>
       <Image
         src={SRC[variant]}
-        alt="Afferent"
+        alt="Afferent Reflex"
         width={width}
         height={height}
         priority={variant === "hero" || variant === "loading"}

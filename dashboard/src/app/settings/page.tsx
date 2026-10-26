@@ -32,7 +32,7 @@ export default function SettingsPage() {
   return (
     <main className="settings-page">
       <header className="settings-top">
-        <span className="login-brand" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontWeight: 700, letterSpacing: '.04em' }}><Logo variant="mark" size={28} />AFFERENT</span>
+        <span className="login-brand" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontWeight: 700, letterSpacing: '.04em' }}><Logo variant="mark" size={28} />Afferent Reflex</span>
         <Link className="btn" href={home}><ArrowLeft size={14} aria-hidden="true" /> {t('settings.back')}</Link>
       </header>
       <div className="settings-main">

@@ -61,16 +61,22 @@ def employee_file_scan():
         return jsonify({'error': 'File scan could not be accepted. Please retry.'}), 503
 
 
-@threat_bp.route('/api/threat/scan', methods=['POST'])
+@threat_bp.route('/api/threat/scan', methods=['GET', 'POST'])
 @require_roles('employee')
 def scan_url_reputation():
     from services import report_service
+    from services import url_scan_service
+    if request.method == 'GET':
+        analysis = url_scan_service.result(current_identity(), request.args.get('scanId', ''))
+        return (jsonify({'data': analysis}), 200) if analysis else (jsonify({'error': 'Scan not found.'}), 404)
     body = request.get_json(silent=True)
     if not isinstance(body, dict):
         return jsonify({'error': 'A JSON object is required.'}), 400
     try:
         report_service.rate_limit(current_identity(), 'url-scan')
-        return jsonify({'success': True, 'data': report_service.analyze_url(body.get('url'))})
+        analysis = report_service.analyze_url(body.get('url'))
+        url_scan_service.grant(current_identity(), analysis.get('scanId'))
+        return jsonify({'success': True, 'data': analysis})
     except (ValueError, TypeError) as exc:
         return jsonify(error_body(exc)), 400
     except Exception:
@@ -142,7 +148,7 @@ def scan_dl():
 
 
 @threat_bp.route("/api/threat/model-status", methods=["GET"])
-@require_roles("soc", "ciso", "phishing_admin")
+@require_roles("soc", "phishing_admin")
 def model_status():
     import char_bilstm_scanner
     from services.domain_scanner import status as domain_status

@@ -1,5 +1,13 @@
 # Domain-only ML: offline baseline, 2 October 2026
 
+## Retraining update: 26 October 2026
+
+New LR, LinearSVC, histogram boosting and ensemble candidates were evaluated.
+None passed every promotion gate; `domain_v3` remains active. See the
+[measured retraining report](DOMAIN_ML_RETRAINING_2026-10-26.md) and
+[algorithm research](DOMAIN_ML_ALGORITHM_REVIEW.md). Live traffic uses local ML
+only; VirusTotal/urlscan remain limited to explicit employee actions.
+
 ## Current demo policy — 3 October 2026
 
 The historical v2 numbers below are superseded by v3's **operating point**.

@@ -6,8 +6,8 @@ import { usePreference } from '@/hooks/usePreference';
 import { useI18n } from '@/i18n/I18nProvider';
 import type { MessageKey } from '@/i18n/messages';
 
-export type TourRole = 'employee' | 'soc' | 'grc' | 'ciso' | 'phishing_admin';
-const STEPS: Record<TourRole, number> = { employee: 4, soc: 4, grc: 4, ciso: 3, phishing_admin: 3 };
+export type TourRole = 'employee' | 'soc' | 'phishing_admin';
+const STEPS: Record<TourRole, number> = { employee: 4, soc: 4, phishing_admin: 3 };
 export const tourKey = (role: TourRole) => `afferent_tour_${role}`;
 
 /** Shown once per person on this browser, never again unless they ask from Settings. */

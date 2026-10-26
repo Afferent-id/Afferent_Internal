@@ -16,8 +16,6 @@ export const MOCK_USERS: Record<MockRole, { id: number; email: string; userName:
   employee: { id: 1, email: 'sinta.maharani@afferent.local', userName: 'Sinta Maharani', division: 'Finance', role: 'employee' },
   phishing_admin: { id: 2, email: 'dimas.anggara@afferent.local', userName: 'Dimas Anggara', division: 'Security', role: 'phishing_admin' },
   soc: { id: 3, email: 'rafi.pratama@afferent.local', userName: 'Rafi Pratama', division: 'Security', role: 'soc' },
-  grc: { id: 4, email: 'laras.wulandari@afferent.local', userName: 'Laras Wulandari', division: 'Compliance', role: 'grc' },
-  ciso: { id: 5, email: 'bayu.santoso@afferent.local', userName: 'Bayu Santoso', division: 'Executive', role: 'ciso' },
 };
 
 const DIVISIONS = ['Finance', 'Engineering', 'Human Resources', 'Marketing', 'Operations'];
@@ -207,7 +205,7 @@ export const incidents = (closedIds = '', owners: Record<string, string | null> 
     ['INC-2040', 'threat_report', 'high', 'Operations', 'invoice-october.pdf.exe', 'File flagged as trojan by 31 engines', 'open', 2 * HOUR],
     ['INC-2039', 'phishing_url', 'medium', 'Marketing', 'http://promo-giftcards.example/claim', 'urlscan: suspicious redirect chain', 'open', 7 * HOUR],
     ['INC-2038', 'phishing_url', 'high', 'Engineering', 'http://git-hub-login.example/session', 'Look-alike of a code hosting login page', 'closed', 1 * DAY],
-    ['INC-2037', 'threat_report', 'low', 'Human Resources', 'N/A', 'Report submitted via AFFERENT', 'closed', 3 * DAY],
+    ['INC-2037', 'threat_report', 'low', 'Human Resources', 'N/A', 'Report submitted via Afferent Reflex', 'closed', 3 * DAY],
   ] as const;
   const list = rows.map(([id, type, severity, source, target, description, status, age]) => ({ id, timestamp: ago(age), type, severity, source, target, description, status: closedNow.has(id) ? 'closed' : status, assignee: id in owners ? owners[id] : (id === 'INC-2040' ? MOCK_USERS.soc.email : null) }));
   return {
@@ -391,11 +389,6 @@ export const proxyTraffic = () => ({
     { event_id: 'e3', domain: 'docs.partner-company.example', employee_email: 'sinta.maharani@afferent.local', method: 'CONNECT', port: 443, action: 'allow', decision_source: 'soc', reason: 'SOC allow', occurred_at: ago(50 * MIN) },
   ],
 });
-export const secondOpinion = (domain: string) => ({
-  status: 'completed', model: 'mock-local-llm',
-  result: { assessment: 'likely_phishing', category: 'credential_harvesting', reason: `The hostname "${domain}" imitates a payroll service using urgency words.`, elapsedMs: 1840 },
-});
-
 /** Eight weeks, oldest first: the score climbs slowly, people at risk and open incidents fall. */
 export const weeklyTrends = () => {
   const monday = new Date(); monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7) - 49);

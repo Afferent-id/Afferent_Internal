@@ -20,7 +20,7 @@ import type { MessageKey } from '@/i18n/messages';
 
 interface IncidentQueueProps {
   incidents: Incident[];
-  /** SOC can resolve and reopen. GRC and CISO read only. */
+  /** Only SOC can take ownership and resolve. */
   canResolve: boolean;
   /** Called after a change so the page can fetch the new list. */
   onChanged: () => void;
@@ -71,6 +71,7 @@ export default function IncidentQueue({ incidents, canResolve, onChanged, loadin
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | 'resolve' | 'reopen'>(null);
   const [note, setNote] = useState('');
+  const [resolution, setResolution] = useState<'block' | 'allow'>('block');
   const [noteError, setNoteError] = useState('');
   const [version, setVersion] = useState(0);
   const { user } = useAuth();
@@ -98,7 +99,7 @@ export default function IncidentQueue({ incidents, canResolve, onChanged, loadin
   const activeFilters = (status !== 'open' ? 1 : 0) + (severity !== 'all' ? 1 : 0) + (query ? 1 : 0);
   const clear = () => { setStatus('open'); setSeverity('all'); setQuery(''); };
 
-  async function send(incident: Incident, body: Record<string, string>, toastKey: MessageKey, undoable = false) {
+  async function send(incident: Incident, body: Record<string, string>, toastKey: MessageKey) {
     setBusy(true); setFailure('');
     try {
       const res = await fetch('/api/incident', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket_id: incident.id, ...body }) });
@@ -106,23 +107,16 @@ export default function IncidentQueue({ incidents, canResolve, onChanged, loadin
       if (!res.ok) throw new Error(serverMessage(payload, t, 'inc.fail'));
       setDialog(null); setNote(''); setVersion(v => v + 1);
       onChanged();
-      toast.show({ message: t(toastKey), tone: 'ok', ...(undoable ? { action: { label: t('inc.undo'), onClick: () => void undo(incident) }, durationMs: 8000 } : {}) });
+      toast.show({ message: t(toastKey), tone: 'ok' });
     } catch (err) { setFailure(err instanceof Error ? err.message : t('inc.fail')); }
     finally { setBusy(false); }
-  }
-  async function undo(incident: Incident) {
-    try {
-      const res = await fetch('/api/incident', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticket_id: incident.id, status: 'open' }) });
-      if (!res.ok) throw new Error();
-      setVersion(v => v + 1); onChanged();
-    } catch { toast.show({ message: t('inc.fail'), tone: 'bad' }); }
   }
   function submitDialog() {
     if (!selected || !dialog) return;
     const text = note.trim();
     if (dialog === 'resolve' && text.length < 5) { setNoteError(t('inc.note.short')); return; }
     setNoteError('');
-    void send(selected, { status: dialog === 'resolve' ? 'closed' : 'open', note: text }, dialog === 'resolve' ? 'inc.toast.resolved' : 'inc.toast.reopened', dialog === 'resolve');
+    void send(selected, { status: dialog === 'resolve' ? 'closed' : 'open', note: text, ...(dialog === 'resolve' ? { resolution } : {}) }, dialog === 'resolve' ? 'inc.toast.resolved' : 'inc.toast.reopened');
   }
   const openDialog = (mode: 'resolve' | 'reopen') => { setFailure(''); setNote(''); setNoteError(''); setDialog(mode); };
   const mine = (incident: Incident) => Boolean(user?.email) && incident.assignee?.toLowerCase() === user?.email.toLowerCase();
@@ -132,7 +126,7 @@ export default function IncidentQueue({ incidents, canResolve, onChanged, loadin
     { key: 'id', header: t('inc.col.id'), sortValue: i => i.id, render: i => <span className="mono">{i.id}</span>, low: true },
     { key: 'incident', header: t('inc.col.incident'), render: i => <span className="cell-clip" title={`${i.target} · ${i.description}`}><strong>{i.target}</strong><small className="cell-sub">{i.description}</small></span> },
     { key: 'division', header: t('inc.col.division'), sortValue: i => i.source, render: i => i.source, secondary: true },
-    { key: 'owner', header: t('inc.col.owner'), sortValue: i => i.assignee ?? '', render: i => (i.assignee ? i.assignee.split('@')[0] : <span className="emp-muted">{t('inc.panel.unassigned')}</span>), secondary: true },
+    { key: 'owner', header: t('inc.col.owner'), sortValue: i => i.assignee ?? '', render: i => (i.assignee ? i.assignee.split('@')[0] : <span className="emp-muted">{t('inc.panel.unassigned')}</span>) },
     { key: 'status', header: t('inc.col.status'), sortValue: i => i.status, render: i => <StatusChip tone={isOpen(i) ? 'open' : 'ok'}>{t(isOpen(i) ? 'status.open' : 'status.resolved')}</StatusChip> },
     { key: 'age', header: t('inc.col.age'), sortValue: i => new Date(i.timestamp).getTime(), render: i => formatAgo(i.timestamp, lang, now), align: 'right', low: true },
   ];
@@ -144,18 +138,21 @@ export default function IncidentQueue({ incidents, canResolve, onChanged, loadin
       <dl className="acc-facts">
         <div><dt>{t('inc.panel.evidence')}</dt><dd>{selected.description}</dd></div>
         <div><dt>{t('inc.panel.type')}</dt><dd>{t(typeKey(selected.type))}</dd></div>
+        <div><dt>Source</dt><dd>{selected.origin === 'employee_report' ? 'Employee report' : 'Historical incident'}</dd></div>
         <div><dt>{t('inc.panel.division')}</dt><dd>{selected.source}</dd></div>
         <div><dt>{t('inc.panel.reported')}</dt><dd>{formatAgo(selected.timestamp, lang, now)}</dd></div>
         <div><dt>{t('inc.panel.owner')}</dt><dd>{selected.assignee ?? t('inc.panel.unassigned')}</dd></div>
+        {selected.reporter && <div><dt>Reported by</dt><dd>{selected.reporter}</dd></div>}
+        {selected.resolution && <div><dt>Resolution</dt><dd>{selected.resolution.toUpperCase()} · {selected.resolutionReason}</dd></div>}
       </dl>
       {canResolve
         ? <div className="incident-actions">
             {isOpen(selected)
-              ? <button type="button" className="btn btn-primary" onClick={() => openDialog('resolve')}>{t('inc.action.resolve')}</button>
+              ? <button type="button" className="btn btn-primary" disabled={busy || !mine(selected)} onClick={() => openDialog('resolve')}>{t('inc.action.resolve')}</button>
               : <button type="button" className="btn" disabled={busy} onClick={() => openDialog('reopen')}>{t('inc.action.reopen')}</button>}
             {mine(selected)
               ? <button type="button" className="btn" disabled={busy} onClick={() => void send(selected, { assignee: '' }, 'inc.toast.unassigned')}>{t('inc.action.unassign')}</button>
-              : <button type="button" className="btn" disabled={busy} onClick={() => void send(selected, { assignee: 'me' }, 'inc.toast.assigned')}>{t('inc.action.assignMe')}</button>}
+              : <button type="button" className="btn" disabled={busy || Boolean(selected.assignee)} onClick={() => void send(selected, { assignee: 'me' }, 'inc.toast.assigned')}>{t('inc.action.assignMe')}</button>}
           </div>
         : <p className="emp-muted">{t('inc.readonly')}</p>}
       {failure && !dialog && <p className="debt-error" role="alert">{failure}</p>}
@@ -210,7 +207,7 @@ export default function IncidentQueue({ incidents, canResolve, onChanged, loadin
           ? <StateMessage variant="loading" lines={4} />
           : (
           <div className="incident-split" data-wide={wide}>
-            <DataTable caption={t('inc.caption')} columns={columns} rows={rows} rowKey={i => i.id} selectedKey={selectedId}
+            <DataTable key={`${query}:${severity}:${status}`} caption={t('inc.caption')} columns={columns} rows={rows} rowKey={i => i.id} selectedKey={selectedId} pageSize={12} density="comfortable"
               onRowClick={i => { setSelectedId(i.id); setFailure(''); }}
               empty={<StateMessage variant="empty" title={t('inc.empty.title')} why={t(activeFilters ? 'inc.empty.filtered' : 'inc.empty.open')} />} />
             {wide && <aside className="incident-panel" aria-label={selected ? selected.id : t('inc.title')}>{detail ?? <p className="emp-muted">{t('inc.panel.empty')}</p>}</aside>}
@@ -227,6 +224,12 @@ export default function IncidentQueue({ incidents, canResolve, onChanged, loadin
           <button type="button" className="btn" disabled={busy} onClick={() => setDialog(null)}>{t('common.cancel')}</button>
           <button type="button" className="btn btn-primary" disabled={busy} onClick={submitDialog}>{t(dialog === 'reopen' ? 'inc.action.reopen' : 'inc.action.resolve')}</button>
         </>}>
+        {dialog === 'resolve' && selected?.type === 'phishing_url' && <fieldset className="decision-choice"><legend>Proxy decision</legend>
+          <label><input type="radio" name="resolution" value="block" checked={resolution === 'block'} onChange={() => setResolution('block')} />Block domain</label>
+          <label><input type="radio" name="resolution" value="allow" checked={resolution === 'allow'} onChange={() => setResolution('allow')} />Allow domain</label>
+          <p className="emp-muted">Applies to this domain and its subdomains for all proxy users.</p>
+        </fieldset>}
+        {dialog === 'reopen' && <p className="emp-muted">Reopening keeps the current proxy policy. A new decision requires a new review.</p>}
         <Field label={t('inc.note.label')} hint={t('inc.note.hint')} error={noteError || undefined} optionalLabel={dialog === 'reopen' ? t('common.optional') : undefined}>
           {control => <textarea {...control} rows={3} maxLength={1000} value={note} onChange={e => { setNote(e.target.value); if (noteError) setNoteError(''); }} />}
         </Field>

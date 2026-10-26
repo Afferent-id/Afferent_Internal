@@ -1,0 +1,61 @@
+/* SOC workspace: one primary task per page. Employee grid geometry is untouched. */
+.shell[data-role="soc"] .shell-content { container: soc-workspace / inline-size; }
+.shell[data-role="soc"] .main { display:grid; gap:24px; align-content:start; min-width:0; }
+.shell[data-role="soc"] .soc-page-description { color:var(--text-secondary); font-size:14px; line-height:1.7; }
+.shell[data-role="soc"] :is(.exec,.ops-page,.incident-queue) { gap:24px; min-width:0; }
+.shell[data-role="soc"] .exec-grid { grid-template-columns:minmax(0,1fr); gap:20px; align-items:stretch; }
+.shell[data-role="soc"] .exec-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.shell[data-role="soc"] .exec-card { padding:24px; min-width:0; }
+.shell[data-role="soc"] .exec-grid > .exec-card { min-height:310px; }
+/* Risk summaries use their content height instead of stretching with People. */
+.shell[data-role="soc"] .exec-grid > .exec-risk-card { min-height:0; align-self:start; align-content:start; gap:16px; }
+.shell[data-role="soc"] .exec-risk-card > .emp-list { align-content:start; }
+.shell[data-role="soc"] .exec-risk-card > .emp-list > li:first-child { padding-top:0; }
+.shell[data-role="soc"] .exec-risk-card > .emp-list > li:last-child { padding-bottom:0; }
+.shell[data-role="soc"] .kpi { min-height:116px; }
+.shell[data-role="soc"] .soc-inbox-summary { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:640px; }
+.shell[data-role="soc"] .soc-inbox-summary .kpi { min-height:90px; padding:16px 20px; }
+.shell[data-role="soc"] .audit-log .data-table :is(th,td):last-child { position:static; }
+.shell[data-role="soc"] :is(.exec-card,.ops-card,.kpi) { animation:none; }
+.shell[data-role="soc"] .ops-intro { align-items:center; gap:20px; }
+.shell[data-role="soc"] .ops-intro p { max-width:72ch; line-height:1.7; }
+.shell[data-role="soc"] .ops-head { align-items:center; gap:16px; flex-wrap:wrap; }
+.shell[data-role="soc"] .ops-head > .ops-actions { align-items:center; gap:12px; flex-flow:row wrap; }
+.shell[data-role="soc"] .ops-head > .ops-actions > .emp-muted { line-height:1.3; white-space:nowrap; }
+.shell[data-role="soc"] .filter-bar { gap:12px; align-items:center; }
+.shell[data-role="soc"] .data-table-panel { min-width:0; }
+.shell[data-role="soc"] .table-wrap { overflow:auto; }
+.shell[data-role="soc"] .ops-main .table-wrap { max-height:440px; }
+.shell[data-role="soc"] .data-table :is(th,td) { padding:12px 16px; line-height:1.65; }
+.shell[data-role="soc"] .data-table th { z-index:1; font-weight:500; }
+.shell[data-role="soc"] .data-table td { vertical-align:middle; }
+.shell[data-role="soc"] .data-table .btn { min-height:32px; padding:5px 12px; font-size:12px; }
+.shell[data-role="soc"] .cell-preview { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; white-space:normal; max-width:42ch; overflow-wrap:anywhere; }
+.shell[data-role="soc"] .incident-split { align-items:start; grid-template-columns:minmax(0,1fr); }
+.shell[data-role="soc"] .incident-split .data-table-panel { min-height:320px; }
+.shell[data-role="soc"] .incident-panel { position:sticky; top:24px; max-height:calc(100dvh - 140px); overflow:auto; padding:24px; }
+.shell[data-role="soc"] .incident-detail h3 { font-size:17px; line-height:1.65; overflow-wrap:anywhere; }
+.shell[data-role="soc"] .incident-detail-head { gap:10px; flex-wrap:wrap; }
+.shell[data-role="soc"] .incident-detail-head .mono { display:block; width:100%; font-size:11px; color:var(--text-muted); overflow-wrap:anywhere; }
+.shell[data-role="soc"] .incident-history { margin-top:24px; }
+.shell[data-role="soc"] .donut-row { display:grid; grid-template-columns:160px minmax(0,1fr); gap:24px; align-items:center; margin-top:16px; }
+.shell[data-role="soc"] .donut-visual { display:grid; gap:4px; justify-items:center; }
+.shell[data-role="soc"] .donut-center b { font-size:30px; line-height:1; }
+.shell[data-role="soc"] .donut-caption { font-size:12px; line-height:1.5; color:var(--text-secondary); text-align:center; }
+.shell[data-role="soc"] .donut-legend { min-width:0; gap:14px; }
+.shell[data-role="soc"] .donut-legend li { grid-template-columns:12px minmax(0,1fr) 24px 40px; gap:10px; }
+.shell[data-role="soc"] .donut-legend b { text-align:right; font-weight:500; }
+.shell[data-role="soc"] .soc-update-note { padding:12px 16px; border:1px solid var(--border-warning); background:var(--bg-warning); color:var(--text-warning); border-radius:12px; font-size:13px; }
+.shell[data-role="soc"] .soc-trend { min-width:0; }
+.shell[data-role="soc"] .soc-trend > summary { color:var(--text-secondary); font-size:13px; cursor:pointer; padding:12px 0; }
+.shell[data-role="soc"] .audit-detail dl { display:grid; gap:20px; }
+.shell[data-role="soc"] .audit-detail dt { font-size:12px; color:var(--text-secondary); margin-bottom:4px; }
+.shell[data-role="soc"] .audit-detail dd { overflow-wrap:anywhere; line-height:1.75; }
+@container soc-workspace (min-width:1000px) {
+  .shell[data-role="soc"] .exec-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .shell[data-role="soc"] .exec-kpis { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .shell[data-role="soc"] .incident-split[data-wide="true"] { grid-template-columns:minmax(0,1fr) 340px; }
+}
+@container (max-width:1100px) { .shell[data-role="soc"] .incident-split :is(th,td)[data-secondary] { display:none; } }
+@container (max-width:1000px) { .shell[data-role="soc"] .incident-split :is(th,td)[data-low] { display:none; } }
+@container soc-workspace (max-width:999px) { .shell[data-role="soc"] .incident-panel { position:static; max-height:none; } }

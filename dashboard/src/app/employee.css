@@ -1,14 +1,15 @@
 /* Employee home. Spacious density: one next step, then calm cards.
    Spec: vault Redesign/Screen Briefs/Employee Home Brief.md */
 .emp-top { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 24px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
-.emp-top .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; letter-spacing: .12em; }
+.emp-top .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: 0; }
 .emp-top-tools { display: flex; align-items: center; gap: 8px; min-width: 0; }
 @media (max-width: 380px) { .emp-top .brand-name { display: none; } .emp-top-tools { gap: 4px; } }
-.emp-page { background: var(--bg-deep); min-height: 100dvh; color: var(--text-primary); display: flex; flex-direction: column; }
+.emp-page { min-height: 100dvh; color: var(--text-primary); display: flex; flex-direction: column; }
 .emp-main { width: 100%; max-width: 1040px; margin: 0 auto; padding: 24px 24px 56px; flex: 1; }
 .emp-home { display: grid; gap: 16px; }
 .emp-greeting { font-size: 26px; line-height: 1.3; font-weight: 600; letter-spacing: 0; }
 .emp-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; min-width: 0; }
+.emp-page .pxc { background: var(--workspace-wash); }
 .emp-card h2 { font-size: 16px; line-height: 1.4; font-weight: 600; letter-spacing: 0; }
 .emp-card > h2 { margin-bottom: 14px; }
 .emp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -151,8 +152,9 @@
 }
 .emp-main-grid ~ .emp-card { margin-top: 0; }
 
-/* Device protection: one block that only exists while protection is off. */
+/* Device protection: one persistent status block after the initial check. */
 .pxc.pxc-alert { display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; gap: var(--space-3); align-items: stretch; margin-bottom: 0; overflow: visible; padding: var(--space-5); border-color: var(--sev-critical); border-left-width: 4px; background: var(--bg-surface); }
+.pxc.pxc-alert[data-tone="ok"] { border-color: var(--sev-ok); }
 .pxc.pxc-alert::after { display: none; }
 .pxc-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
 .pxc-alert .pxc-head > .btn { flex: none; }

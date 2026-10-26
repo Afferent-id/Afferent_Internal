@@ -32,7 +32,7 @@ ai_bp = Blueprint('ai', __name__)
 
 @ai_bp.before_request
 def authorize_ai():
-    roles = ('phishing_admin',) if request.path.startswith('/api/ai/gophish') else ('soc', 'ciso', 'grc', 'phishing_admin')
+    roles = ('phishing_admin',) if request.path.startswith('/api/ai/gophish') else ('soc', 'phishing_admin')
     return require_roles(*roles)(lambda: None)()
 
 

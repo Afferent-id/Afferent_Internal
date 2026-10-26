@@ -1,13 +1,13 @@
 /* Shared workspace surfaces. Security pages retain their standalone design. */
 :root {
-  --workspace-gradient: var(--accent);
+  --workspace-gradient: var(--grad-cta);
   --workspace-wash: linear-gradient(115deg, var(--bg-surface) 35%, var(--bg-elevated));
 }
 
 button, input, select, textarea { font-family: inherit; }
 button:disabled { cursor: not-allowed; }
-:is(.app, .app-shell, .shell) {
-  background: var(--bg-deep);
+:is(.app, .app-shell, .shell, .emp-page) {
+  background: radial-gradient(ellipse at 85% 0%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 48%), var(--bg-deep);
 }
 .app-shell .app-shell-main { max-width: 1540px; padding: 24px 32px 48px; }
 .app > .main { max-width: 1480px; padding-top: 28px; }

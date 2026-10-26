@@ -34,7 +34,7 @@ vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/components/EmployeeUr
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
 }).outputText, {
   exports: exportsFixture, File, FormData, AbortController,
-  require: name => name === 'react' ? hooks : name === './ThreatEvidence' ? { default: () => null } : name === '@/i18n/I18nProvider' ? i18nFixture : require(name),
+  require: name => name === 'react' ? hooks : name.endsWith('.css') ? {} : name === './ThreatEvidence' ? { default: () => null } : name === '@/i18n/I18nProvider' ? i18nFixture : require(name),
   window: { setInterval: callback => { timers.set(++timerId, callback); return timerId; }, clearInterval: id => timers.delete(id) },
   fetch: async (url, options = {}) => {
     if (options.method === 'POST') {
@@ -63,6 +63,10 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
   find('button', node => text(node) === 'Check file').props.onClick();
   const input = find('input', node => node.props.type === 'file');
   assert.equal(input.props.accept, undefined, 'formats are not restricted to PDF');
+  input.props.onChange({ target: { files: [new File(['MZ fixture'], 'fixture.exe')] } });
+  assert.ok(text(render()).includes('fixture.exe'), 'selected filename remains visible in the custom file control');
+  find('button', node => node.props['aria-label'] === 'Remove selected file').props.onClick();
+  assert.ok(!find('button', node => node.props['aria-label'] === 'Remove selected file'), 'clearing the choice resets the control');
   input.props.onChange({ target: { files: [new File(['MZ fixture'], 'fixture.exe')] } });
   await find('form').props.onSubmit({ preventDefault() {} });
   assert.equal(writes.length, 0, 'sharing consent is mandatory');

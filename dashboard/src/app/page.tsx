@@ -26,8 +26,6 @@ interface BehaviorScore extends EmployeeScore {
 const ROLE_ROUTES: Record<string, string> = {
   admin: '/admin',
   soc: '/dashboard/soc',
-  ciso: '/dashboard/ciso',
-  grc: '/dashboard/grc',
   phishing_admin: '/dashboard/phishing-admin',
 };
 
@@ -99,7 +97,7 @@ export default function EmployeeDashboardPage() {
     <div className="app emp-page">
       <FirstRunTour role="employee" />
       <header className="emp-top">
-        <span className="brand"><Logo variant="mark" size={28} /><span className="brand-name">AFFERENT</span></span>
+        <span className="brand"><Logo variant="mark" size={28} /><span className="brand-name">Afferent <span className="brand-reflex">Reflex</span></span></span>
         <span className="emp-top-tools">
           <LanguageSwitch />
           <ThemeToggle />
@@ -155,7 +153,7 @@ export default function EmployeeDashboardPage() {
         onChoose={choice => { setTrainingOpen(false); setActiveTab(choice === 'game' ? 'game' : 'quiz'); }}
       />
 
-      <footer className="dashboard-footer">AFFERENT · Team security</footer>
+      <footer className="dashboard-footer">Afferent Reflex · Team security</footer>
     </div>
   );
 }
