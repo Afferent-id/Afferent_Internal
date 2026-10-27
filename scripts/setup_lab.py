@@ -96,12 +96,12 @@ def generate_certificates(host):
     for folder in (gophish, proxy):
         for file in folder.glob('*.key'):
             file.chmod(0o600)
-    if os.name == 'posix':
-        # The pinned GoPhish image runs as app:app (1000:1000). Give that leaf
-        # key to its reader; keep both CA signing keys private to the host owner.
-        subprocess.run(['docker', 'run', '--rm', '--network', 'none',
-                        '--mount', f'type=bind,source={gophish},target=/pki',
-                        '--entrypoint', 'chown', image, '1000:1000', '/pki/gophish-admin.key'], check=True)
+    # Ownership belongs to the Linux container user even when Docker's host is
+    # Windows. Otherwise the root-generated, mode-0600 leaf key cannot be read
+    # by GoPhish's app:app user. Both CA signing keys stay with their creator.
+    subprocess.run(['docker', 'run', '--rm', '--network', 'none',
+                    '--mount', f'type=bind,source={gophish},target=/pki',
+                    '--entrypoint', 'chown', image, '1000:1000', '/pki/gophish-admin.key'], check=True)
 
 
 if __name__ == '__main__':

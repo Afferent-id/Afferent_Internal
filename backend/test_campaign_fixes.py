@@ -225,7 +225,8 @@ def mailpit_smoke():
             database.sync_gophish_events(campaign)
             assert database.get_user_history(email)['points'] == 70
         education = requests.get('http://dashboard:3000/simulation/education', timeout=5)
-        assert education.status_code == 200 and 'simulasi phishing' in education.text
+        assert education.status_code == 200
+        assert 'id="education-next"' in education.text and 'phishing' in education.text.lower()
         print({'campaign_id': campaign_id, 'mailpit_delivery': 'PASS', 'tracking': 'PASS', 'submit_education': 'PASS', 'score': '100 -> 90 -> 70', 'scoring_dedupe': 'PASS', 'real_employee_scores': 'untouched'})
     finally:
         gp.complete_campaign(campaign_id)
