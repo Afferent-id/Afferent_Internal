@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements-ml.txt
 COPY . .
 
 RUN useradd -r -s /bin/false flaskuser \
+    && mkdir -p /app/instance \
     && chown -R flaskuser:flaskuser /app
 USER flaskuser
 
