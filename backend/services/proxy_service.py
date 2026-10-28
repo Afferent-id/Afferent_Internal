@@ -440,6 +440,23 @@ def decide(
 
     if device:
         proxy_store.mark_proxy_seen(str(device["id"]))
+
+    # Bypass internal / private LAN / Tailscale IPs without feeding to ML
+    try:
+        ip = ipaddress.ip_address(domain)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or (ip.version == 4 and ipaddress.ip_network("100.64.0.0/10").overlaps(ipaddress.ip_network(f"{ip}/32"))):
+            return {
+                "schemaVersion": SCHEMA_VERSION,
+                "eventId": event_id,
+                "domain": domain,
+                "action": "allow",
+                "source": "local_network",
+                "reason": "Internal RFC1918 / Private / Tailscale LAN destination",
+                "deviceAuthenticated": bool(device),
+            }
+    except ValueError:
+        pass
+
     cached = _effective_verdict(domain)
     if cached:
         # Respect block decision from both explicit SOC policy and high-confidence ML verdict.

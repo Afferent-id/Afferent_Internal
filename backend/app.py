@@ -82,6 +82,10 @@ if env_flag('PROXY_FEATURE_ENABLED'):
     if env_flag('ML_LOCAL_ENABLED', default=True):
         from services.domain_scanner import warmup as warmup_domain_ml
         warmup_domain_ml()
+        if env_flag('ML_CONTINUOUS_LEARNING_ENABLED', default=True):
+            from services.continuous_learning import start_scheduler
+            interval_hours = int(os.environ.get('ML_RETRAIN_INTERVAL_HOURS', '3'))
+            start_scheduler(interval_hours=interval_hours)
 
 # Ensure there is one server-side RBAC account for the existing administrator.
 # This is idempotent and only uses ADMIN_PASSWORD during the one-time bootstrap.

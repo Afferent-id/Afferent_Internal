@@ -74,7 +74,7 @@ def blocked():
 
 
 @proxy_bp.route("/api/proxy/device/register", methods=["POST"])
-@require_roles("employee")
+@require_roles("employee", "soc", "phishing_admin", "ciso", "grc")
 def register_device():
     body = request.get_json(silent=True) or {}
     try:
@@ -87,7 +87,7 @@ def register_device():
 
 
 @proxy_bp.route("/api/proxy/device/heartbeat", methods=["POST"])
-@require_roles("employee")
+@require_roles("employee", "soc", "phishing_admin", "ciso", "grc")
 def heartbeat_device():
     try:
         status = proxy_service.heartbeat_device(current_identity(), _client_ip())
@@ -97,7 +97,7 @@ def heartbeat_device():
 
 
 @proxy_bp.route("/api/proxy/device/status", methods=["GET"])
-@require_roles("employee")
+@require_roles("employee", "soc", "phishing_admin", "ciso", "grc")
 def device_status():
     return jsonify({
         "status": proxy_service.current_device_status(current_identity(), _client_ip())

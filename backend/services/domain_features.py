@@ -63,12 +63,12 @@ class DomainFeatureExtractor:
         host = host.lower().strip(".")
         if host in self.tranco_lookup:
             return self.tranco_lookup[host]
-        # Try checking parent domain if host has subdomains
+        # Check parent domains for subdomains (e.g. apispada.kemdiktisaintek.go.id -> kemdiktisaintek.go.id)
         parts = host.split(".")
-        if len(parts) > 2:
-            root = ".".join(parts[-2:])
-            if root in self.tranco_lookup:
-                return self.tranco_lookup[root]
+        for i in range(1, len(parts)):
+            sub = ".".join(parts[i:])
+            if sub in self.tranco_lookup:
+                return self.tranco_lookup[sub]
         return None
 
     def extract_features(self, host: str) -> Dict[str, Any]:
@@ -79,8 +79,16 @@ class DomainFeatureExtractor:
         clean_host = host.lower().strip().rstrip(".")
         length = len(clean_host)
         
-        # Check IP
-        is_ip = 1.0 if IPV4_REGEX.match(clean_host) else 0.0
+        # Check IP (public raw IPs are suspicious, but private/LAN IPs are internal)
+        is_ip = 0.0
+        if IPV4_REGEX.match(clean_host):
+            try:
+                import ipaddress
+                _ip = ipaddress.ip_address(clean_host)
+                if not (_ip.is_private or _ip.is_loopback or _ip.is_link_local or (_ip.version == 4 and ipaddress.ip_network("100.64.0.0/10").overlaps(ipaddress.ip_network(f"{_ip}/32")))):
+                    is_ip = 1.0
+            except ValueError:
+                is_ip = 1.0
         
         # Subdomains
         parts = clean_host.split(".")
@@ -99,11 +107,10 @@ class DomainFeatureExtractor:
         hyphen_count = clean_host.count("-")
         entropy = self.calculate_entropy(clean_host)
         
-        # Tranco rank: if ranked, map to normalized score; if unranked, 0.0
-        # Rank 1 -> ~5.0 log score, Rank 50000 -> ~0.3 log score, unranked -> 0.0
+        # Tranco rank: Rank 1 -> 6.0, Rank 10k -> 2.0, Rank 1M -> ~0.0, unranked -> 0.0
         rank = self.get_tranco_rank(clean_host)
         if rank and rank > 0:
-            tranco_feature = max(0.0, 5.0 - math.log10(rank))
+            tranco_feature = max(0.0, 6.0 - math.log10(rank))
             is_tranco_top = 1.0
         else:
             tranco_feature = 0.0

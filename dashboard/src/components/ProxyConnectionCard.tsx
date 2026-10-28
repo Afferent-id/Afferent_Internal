@@ -50,21 +50,19 @@ export default function ProxyConnectionCard() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const deviceFetch = useCallback((path: string, options?: RequestInit) => fetch(
-    `${apiBase}${path}`,
+    path,
     { ...options, credentials: 'include' },
-  ), [apiBase]);
+  ), []);
 
   const loadStatus = useCallback(async () => {
     const configResponse = await fetch('/api/config', { cache: 'no-store' });
     const config = configResponse.ok ? await configResponse.json() : {};
-    const runtimeApiBase = String(config.apiUrl || `${window.location.protocol}//${window.location.hostname}:5000`).replace(/\/$/, '');
-    setApiBase(runtimeApiBase);
     if (config.proxyUrl) setProxyUrl(config.proxyUrl);
     setProxyProbeUrl(String(
       config.proxyProbeUrl || 'http://proxy-check.afferent.invalid/__afferent_probe__',
     ));
     const directFetch = (path: string, options?: RequestInit) => fetch(
-      `${runtimeApiBase}${path}`,
+      path,
       { ...options, credentials: 'include' },
     );
     const statusResponse = await directFetch('/api/proxy/device/status', { cache: 'no-store' });
@@ -148,8 +146,10 @@ export default function ProxyConnectionCard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ label: 'Perangkat utama' }),
       });
+      if (!response.ok) {
+        throw new Error(await responseError(response, 'Activation failed'));
+      }
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Activation failed');
       setStatus(payload.status);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Activation failed');

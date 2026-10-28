@@ -80,6 +80,15 @@ def warmup():
             logger.error("Stacker ML unavailable: %s", type(exc).__name__, exc_info=True)
 
 
+def reload():
+    """Hot-reload model weights and manifest in memory without process restart."""
+    global _attempted
+    with _lock:
+        _attempted = False
+    warmup()
+    logger.info("Stacker XGBoost Scanner hot-reloaded with revision: %s", _manifest.get("model_revision", POLICY_REVISION))
+
+
 def model_version() -> Optional[str]:
     warmup()
     return f"stacker-xgb-v1:{POLICY_REVISION}" if _stacker_model is not None else None
@@ -118,6 +127,24 @@ def scan(domain: str) -> Dict[str, Any]:
     except Exception:
         return {"verdict": "unknown", "confidence": None, "status": "invalid_domain",
                 "reason": "Hostname format tidak valid", "modelVersion": model_version()}
+
+    # Internal / RFC1918 / Tailscale IP bypass
+    try:
+        import ipaddress
+        ip = ipaddress.ip_address(domain)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or (ip.version == 4 and ipaddress.ip_network("100.64.0.0/10").overlaps(ipaddress.ip_network(f"{ip}/32"))):
+            return {
+                "verdict": "safe",
+                "confidence": 1.0,
+                "status": "ready",
+                "reason": "Internal RFC1918 / Private / Tailscale LAN destination",
+                "modelVersion": model_version(),
+                "prob_malicious": 0.0,
+                "tranco_top": True,
+                "entropy": 0.0
+            }
+    except ValueError:
+        pass
         
     if generated_hostname(domain):
         return {
@@ -130,9 +157,12 @@ def scan(domain: str) -> Dict[str, Any]:
         
     # 1. Base TF-IDF prediction
     pipeline = _base_tfidf["pipeline"]
-    calibrator = _base_tfidf["calibrator"]
-    margin = pipeline.decision_function([domain]).reshape(-1, 1)
-    tfidf_prob = float(calibrator.predict_proba(margin)[0, 1])
+    calibrator = _base_tfidf.get("calibrator")
+    if calibrator is not None and getattr(calibrator, "n_features_in_", 1) == 1:
+        margin = pipeline.decision_function([domain]).reshape(-1, 1)
+        tfidf_prob = float(calibrator.predict_proba(margin)[0, 1])
+    else:
+        tfidf_prob = float(pipeline.predict_proba([domain])[0, 1])
     
     # 2. Extract structural & reputation features
     feats = _extractor.extract_features(domain)

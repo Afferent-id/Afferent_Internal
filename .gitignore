@@ -71,3 +71,5 @@ Finetune LLM/*cache*/
 backend/models/domain_v1/
 backend/models/domain_v2/
 ml/artifacts/
+
+*.tar.gz

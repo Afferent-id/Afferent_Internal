@@ -11,6 +11,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+import ipaddress
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -88,8 +89,17 @@ ALWAYS_ALLOW_DOMAINS: tuple[str, ...] = (
 
 
 def _is_always_allowed(host: str) -> bool:
-    """Return True if host matches any ALWAYS_ALLOW_DOMAINS entry."""
-    host = host.lower().split(":")[0]
+    """Return True if host matches any ALWAYS_ALLOW_DOMAINS entry or is internal/private IP."""
+    host = host.lower().split(":")[0].strip()
+    try:
+        ip = ipaddress.ip_address(host)
+        # RFC 1918 (10.x, 172.16.x, 192.168.x), loopback (127.x), or Tailscale CGNAT (100.64.0.0/10)
+        if ip.is_private or ip.is_loopback or ip.is_link_local:
+            return True
+        if ip.version == 4 and ipaddress.ip_network("100.64.0.0/10").overlaps(ipaddress.ip_network(f"{ip}/32")):
+            return True
+    except ValueError:
+        pass
     for domain in ALWAYS_ALLOW_DOMAINS:
         if host == domain or host.endswith("." + domain):
             return True

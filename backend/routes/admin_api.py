@@ -731,3 +731,22 @@ def create_division():
         return jsonify({"message": "Division created successfully"}), 201
     except Exception as e:
         return jsonify({"error": "Failed to create division", "detail": str(e)}), 500
+
+
+@admin_api_bp.route('/api/admin/ml/retrain', methods=['GET', 'POST'])
+@require_roles('soc', 'ciso')
+def trigger_ml_retrain():
+    from services.continuous_learning import get_engine
+    from services import stacker_scanner
+    engine = get_engine()
+    if request.method == 'POST':
+        try:
+            result = engine.run_cycle()
+            return jsonify(result), 200
+        except Exception as exc:
+            return jsonify({"error": "Retraining cycle failed", "detail": str(exc)}), 500
+
+    # GET returns current status and active manifest
+    status = stacker_scanner.status()
+    status["last_engine_run"] = engine._last_run.isoformat() if engine._last_run else None
+    return jsonify(status), 200
