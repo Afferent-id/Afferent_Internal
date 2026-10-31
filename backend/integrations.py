@@ -4,9 +4,56 @@ import requests
 import uuid
 import re
 import time
+import threading
 from contextlib import closing
 
-VT_API_KEY = os.getenv("VT_API_KEY")
+# Multi-Key Pool support for VirusTotal
+_vt_keys_lock = threading.Lock()
+_vt_key_index = 0
+_vt_throttled_keys: dict[str, float] = {}  # key -> timestamp until cooldown expires
+
+
+def get_vt_api_keys() -> list[str]:
+    """Return all configured VirusTotal API keys from VT_API_KEYS or VT_API_KEY.
+    Supports comma, semicolon, newline, or whitespace separated keys.
+    """
+    raw = os.getenv("VT_API_KEYS") or os.getenv("VT_API_KEY") or ""
+    keys = []
+    for part in re.split(r"[,\s;]+", raw):
+        k = part.strip()
+        if k and len(k) >= 16 and k not in keys:
+            keys.append(k)
+    return keys
+
+
+def get_next_vt_key() -> str | None:
+    """Thread-safe round-robin selection among active, non-throttled VT keys."""
+    global _vt_key_index
+    keys = get_vt_api_keys()
+    if not keys:
+        return None
+
+    now = time.time()
+    with _vt_keys_lock:
+        # Prioritize keys that haven't hit HTTP 429 within the last 60 seconds
+        active_keys = [k for k in keys if now > _vt_throttled_keys.get(k, 0)]
+        if not active_keys:
+            # If all are temporarily throttled, fallback to round-robin among all keys
+            active_keys = keys
+
+        _vt_key_index = (_vt_key_index + 1) % len(active_keys)
+        return active_keys[_vt_key_index]
+
+
+def mark_vt_key_throttled(key: str, cooldown_seconds: float = 60.0):
+    """Mark a key as temporarily exhausted (HTTP 429) so other keys in the pool are used."""
+    if key:
+        with _vt_keys_lock:
+            _vt_throttled_keys[key] = time.time() + cooldown_seconds
+
+
+# Exported for backward compatibility
+VT_API_KEY = get_vt_api_keys()[0] if get_vt_api_keys() else os.getenv("VT_API_KEY")
 URLSCAN_API_KEY = os.getenv("URLSCAN_API_KEY")
 
 VT_BASE_URL = "https://www.virustotal.com/api/v3/urls"
@@ -15,9 +62,11 @@ URLSCAN_SEARCH_URL = "https://urlscan.io/api/v1/search/"
 
 def _vt_budget():
     import database
-    # Shared across gunicorn and the durable worker; default matches a small
-    # public-key lab. It is a minute cap, not a promise of provider entitlement.
-    cap = max(1, min(1000, int(os.environ.get('VT_REQUESTS_PER_MINUTE', '4'))))
+    keys = get_vt_api_keys()
+    key_count = max(1, len(keys))
+    # Minute cap scales linearly with the number of keys in the pool (default 4 req/min/key)
+    base_per_key = int(os.environ.get('VT_REQUESTS_PER_MINUTE', '4'))
+    cap = max(1, min(2000, base_per_key * key_count))
     minute = int(time.time()) // 60
     with closing(database.get_connection()) as conn, conn:
         conn.execute('BEGIN IMMEDIATE')
@@ -29,23 +78,38 @@ def _vt_budget():
 
 def _vt_throttled():
     return {'success': False, 'provider': 'virustotal', 'status_code': 429,
-            'error': 'Local VirusTotal request budget reached', 'data': None}
+            'error': 'Local VirusTotal request budget reached across key pool', 'data': None}
 
 
 def vt_file_request(method, path, **kwargs):
-    """Fixed-origin VT v3 only; never follow redirects carrying an API key."""
-    if not VT_API_KEY:
+    """Fixed-origin VT v3 only; never follow redirects carrying an API key.
+    Includes automatic failover across the multi-key pool upon HTTP 429.
+    """
+    keys = get_vt_api_keys()
+    if not keys:
         return {'success': False, 'provider': 'virustotal', 'status_code': 503,
-                'error': 'VT_API_KEY not configured', 'data': None}
+                'error': 'VT_API_KEY / VT_API_KEYS not configured', 'data': None}
     if not _vt_budget():
         return _vt_throttled()
-    try:
-        response = requests.request(method, 'https://www.virustotal.com/api/v3/' + path,
-            headers={'x-apikey': VT_API_KEY}, timeout=(4, 12), allow_redirects=False, **kwargs)
-        return _provider_response(response, 'virustotal')
-    except requests.exceptions.RequestException:
-        return {'success': False, 'provider': 'virustotal', 'status_code': 502,
-                'error': 'VirusTotal unavailable', 'data': None}
+
+    max_attempts = min(len(keys), 3) if len(keys) > 1 else 1
+    for _ in range(max_attempts):
+        current_key = get_next_vt_key()
+        if not current_key:
+            break
+        try:
+            response = requests.request(
+                method, 'https://www.virustotal.com/api/v3/' + path,
+                headers={'x-apikey': current_key}, timeout=(4, 12), allow_redirects=False, **kwargs
+            )
+            if response.status_code == 429 and len(keys) > 1:
+                mark_vt_key_throttled(current_key, cooldown_seconds=60.0)
+                continue
+            return _provider_response(response, 'virustotal')
+        except requests.exceptions.RequestException:
+            continue
+    return {'success': False, 'provider': 'virustotal', 'status_code': 502,
+            'error': 'VirusTotal unavailable across key pool', 'data': None}
 
 
 def scan_vt_file_hash(digest):
@@ -124,56 +188,91 @@ def encode_vt_url(url: str) -> str:
 
 
 def scan_virustotal(url: str):
-    if not VT_API_KEY:
+    keys = get_vt_api_keys()
+    if not keys:
         return {
             "success": False,
             "provider": "virustotal",
             "status_code": 503,
-            "error": "VT_API_KEY not configured",
+            "error": "VT_API_KEY / VT_API_KEYS not configured",
             "data": None
         }
 
     if not _vt_budget():
         return _vt_throttled()
-    headers = {
-        "x-apikey": VT_API_KEY
-    }
 
     url_id = encode_vt_url(url)
 
-    try:
-        response = requests.get(
-            f"{VT_BASE_URL}/{url_id}",
-            headers=headers,
-            timeout=8
-        )
-    except requests.exceptions.Timeout:
-        return {
-            "success": False,
-            "provider": "virustotal",
-            "status_code": 408,
-            "error": "Timeout querying VirusTotal API",
-            "data": None
-        }
-    except requests.exceptions.RequestException as e:
-        return {
-            "success": False,
-            "provider": "virustotal",
-            "status_code": 502,
-            "error": f"Network error connecting to VirusTotal: {str(e)}",
-            "data": None
+    # Try up to min(len(keys), 3) attempts with automatic failover on HTTP 429
+    max_attempts = min(len(keys), 3) if len(keys) > 1 else 1
+    last_response = None
+
+    for _ in range(max_attempts):
+        current_key = get_next_vt_key()
+        if not current_key:
+            break
+
+        headers = {
+            "x-apikey": current_key
         }
 
-    if response.status_code != 200:
-        return {
-            "success": False,
-            "provider": "virustotal",
-            "status_code": response.status_code,
-            "error": "Rate limit exceeded (429)" if response.status_code == 429 else f"HTTP {response.status_code}",
-            "data": None
-        }
+        try:
+            response = requests.get(
+                f"{VT_BASE_URL}/{url_id}",
+                headers=headers,
+                timeout=8
+            )
+            if response.status_code == 200:
+                return _provider_response(response, 'virustotal')
+            elif response.status_code == 429:
+                mark_vt_key_throttled(current_key, cooldown_seconds=60.0)
+                last_response = response
+                continue  # Failover to next key in pool
+            else:
+                return {
+                    "success": False,
+                    "provider": "virustotal",
+                    "status_code": response.status_code,
+                    "error": f"HTTP {response.status_code}",
+                    "data": None
+                }
+        except requests.exceptions.Timeout:
+            last_response = {"status_code": 408, "error": "Timeout querying VirusTotal API"}
+            continue
+        except requests.exceptions.RequestException as e:
+            return {
+                "success": False,
+                "provider": "virustotal",
+                "status_code": 502,
+                "error": f"Network error connecting to VirusTotal: {str(e)}",
+                "data": None
+            }
 
-    return _provider_response(response, 'virustotal')
+    if last_response is not None:
+        if isinstance(last_response, dict):
+            return {
+                "success": False,
+                "provider": "virustotal",
+                "status_code": last_response.get("status_code", 429),
+                "error": last_response.get("error", "Rate limit reached across VT key pool"),
+                "data": None
+            }
+        elif hasattr(last_response, "status_code"):
+            return {
+                "success": False,
+                "provider": "virustotal",
+                "status_code": last_response.status_code,
+                "error": "Rate limit exceeded on all available VT keys (429)" if last_response.status_code == 429 else f"HTTP {last_response.status_code}",
+                "data": None
+            }
+
+    return {
+        "success": False,
+        "provider": "virustotal",
+        "status_code": 429,
+        "error": "Rate limit reached across VT key pool",
+        "data": None
+    }
 
 
 def normalize_virustotal(result):
